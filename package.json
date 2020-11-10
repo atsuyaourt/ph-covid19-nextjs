@@ -1,7 +1,13 @@
 {
-  "name": "ph-covid19",
+  "name": "ph-covid19-react",
   "version": "0.1.0",
-  "private": true,
+  "repository": "https://github.com/emiliogozo/ph-covid19-react.git",
+  "author": "Emilio Gozo <emil.gozo@gmail.com>",
+  "license": "MIT",
+  "engines": {
+    "node": ">=12.0.0",
+    "npm": ">=6.0.0"
+  },
   "dependencies": {
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",
@@ -22,6 +28,13 @@
   "eslintConfig": {
     "extends": "react-app"
   },
+  "keywords": [
+    "covid-19",
+    "health",
+    "philippines",
+    "react",
+    "leaflet"
+  ],
   "browserslist": {
     "production": [
       ">0.2%",
