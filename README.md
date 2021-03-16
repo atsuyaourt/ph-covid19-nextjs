@@ -1,12 +1,15 @@
 # DOH COVID-19 PH React App
 
-Sample react app using the DOH COVID-19 Case information API found [here](https://github.com/emiliogozo/ph-covid19-api).
+Sample react app to visualize DOH COVID-19 Case information.
 
 ## Features
-* Map number of cases for each province in the Philippines
-* TODO: Toggle from different health status [asymptomatic, mild, severe, critical, died, recovered]
-* TODO: Filters: healthStatus, removalType, sex
+
+- Map number of cases for each province in the Philippines
+- TODO: Toggle from different health status [asymptomatic, mild, severe, critical, died, recovered]
+- TODO: Filters: healthStatus, removalType, sex
 
 ## Dependencies
-* react
-* react-leaflet
+
+- react
+- mapbox-gl
+- realm-web

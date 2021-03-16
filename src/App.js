@@ -1,14 +1,32 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
-import MapView from './components/MapView';
+import React from 'react'
+import PropTypes from 'prop-types'
+import { useRealmApp, RealmAppProvider } from './RealmApp'
+
+import { Mapbox } from './components/Mapbox'
+
+import logo from './logo.svg' // eslint-disable-line no-unused-vars
+import './App.css'
+
+const REALM_APP_ID = process.env.REACT_APP_REALM_ID
+const REALM_API_KEY = process.env.REACT_APP_REALM_API_KEY
+
+const RequireLoggedInUser = ({ children }) => {
+  // Only render children if there is a logged in user.
+  const app = useRealmApp()
+  return app.currentUser ? children : app.loginApiKey(REALM_API_KEY)
+}
+RequireLoggedInUser.propTypes = {
+  children: PropTypes.node.isRequired,
+}
 
 function App() {
   return (
-    <div className="App">
-      <MapView />
-    </div>
-  );
+    <RealmAppProvider appId={REALM_APP_ID}>
+      <RequireLoggedInUser>
+        <Mapbox />
+      </RequireLoggedInUser>
+    </RealmAppProvider>
+  )
 }
 
-export default App;
+export default App
