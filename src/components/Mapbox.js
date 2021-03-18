@@ -1,17 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react'
-import axios from 'axios'
+
 import mapboxgl from 'mapbox-gl'
 
 import { useRealmApp } from '../RealmApp'
-
-// eslint-disable-next-line no-unused-vars
-import PH_PROV_GJSON from '../data/ph/province.geojson'
 
 // eslint-disable-next-line no-undef
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN
 
 export const Mapbox = () => {
   const mapContainerRef = useRef(null)
+  // eslint-disable-next-line no-unused-vars
+  const [map, setMap] = useState(null)
   const [hoveredProvince, _sethoveredProvince] = useState(null)
   const hoveredProvinceRef = useRef(hoveredProvince)
   const app = useRealmApp()
@@ -35,68 +34,13 @@ export const Mapbox = () => {
     map.addControl(new mapboxgl.NavigationControl(), 'bottom-right')
 
     map.once('load', async () => {
-      const mongodb = app.currentUser.mongoClient('mongodb-atlas')
-      const cases = mongodb.db('default').collection('cases')
+      setMap(map)
 
-      const groupId = {
-        regionResGeo: '$regionResGeo',
-        provResGeo: '$provResGeo',
-        healthStatus: '$healthStatus',
-      }
-
-      const project = {
-        regionResGeo: '$_id.regionResGeo',
-        provResGeo: '$_id.provResGeo',
-        healthStatus: '$_id.healthStatus',
-        count: 1,
-        _id: 0,
-      }
-
-      const caseCount = await cases.aggregate([
-        {
-          $match: {
-            deletedAt: {
-              $exists: 0,
-            },
-            createdAt: new Date('2021-03-15T00:00:00.000+08:00'),
-          },
-        },
-        { $sort: { createdAt: -1 } },
-        {
-          $group: {
-            _id: groupId,
-            count: { $sum: 1 },
-          },
-        },
-        { $project: project },
-      ])
-
-      const phProvMap = await axios
-        .get(PH_PROV_GJSON)
-        .then((response) => response.data)
-        .catch((error) => error)
-
-      const { type: gtype, crs, features } = phProvMap
-
-      let mapData = features.map(({ type: mtype, properties, geometry }, idx) => {
-        const matchMapData = caseCount.filter(({ regionResGeo, provResGeo }) => {
-          return properties.region === regionResGeo && properties.province === provResGeo
-        })
-
-        if (matchMapData.length > 0) {
-          return matchMapData.map((m) => {
-            const { healthStatus, count } = m
-            const newProp = { ...properties, healthStatus, count }
-            return { id: idx, type: mtype, properties: newProp, geometry }
-          })
-        } else {
-          return { id: idx, type: mtype, properties: properties, geometry }
-        }
-      })
+      const caseCountLayer = await app.fetchData(new Date('2021-03-18'))
 
       map.addSource('ph-covid19-source', {
         type: 'geojson',
-        data: { type: gtype, crs, features: [].concat(...mapData) },
+        data: caseCountLayer,
       })
 
       map.addLayer({
@@ -162,5 +106,5 @@ export const Mapbox = () => {
     return () => map.remove()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <div className="map-container" ref={mapContainerRef} />
+  return <div className="absolute top-0 bottom-0 left-0 right-0" ref={mapContainerRef} />
 }
