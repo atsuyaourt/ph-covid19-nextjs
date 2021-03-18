@@ -5,7 +5,6 @@ import { useRealmApp, RealmAppProvider } from './RealmApp'
 import { Mapbox } from './components/Mapbox'
 
 import logo from './logo.svg' // eslint-disable-line no-unused-vars
-import './App.css'
 
 const REALM_APP_ID = process.env.REACT_APP_REALM_ID
 const REALM_API_KEY = process.env.REACT_APP_REALM_API_KEY
