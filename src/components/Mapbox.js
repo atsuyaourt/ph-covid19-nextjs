@@ -1,23 +1,27 @@
 import React, { useState, useRef, useEffect } from 'react'
 
 import mapboxgl from 'mapbox-gl'
+import DatePicker from 'react-datepicker'
 
 import { useRealmApp } from '../RealmApp'
+
+import 'react-datepicker/dist/react-datepicker.css'
 
 // eslint-disable-next-line no-undef
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN
 
 export const Mapbox = () => {
   const mapContainerRef = useRef(null)
-  // eslint-disable-next-line no-unused-vars
   const [map, setMap] = useState(null)
-  const [hoveredProvince, _sethoveredProvince] = useState(null)
-  const hoveredProvinceRef = useRef(hoveredProvince)
+  const [selectedValues, setSelectedValues] = useState({ fetchDate: '', healthStatus: '' })
+  const [dateRange, setDateRange] = useState({})
+  const [hoveredFeature, _setHoveredFeature] = useState(null)
+  const hoveredFeatureRef = useRef(hoveredFeature)
   const app = useRealmApp()
 
-  const sethoveredProvince = (data) => {
-    hoveredProvinceRef.current = data
-    _sethoveredProvince(data)
+  const setHoveredFeature = (data) => {
+    hoveredFeatureRef.current = data
+    _setHoveredFeature(data)
   }
 
   // initialize map when component mounts
@@ -36,7 +40,12 @@ export const Mapbox = () => {
     map.once('load', async () => {
       setMap(map)
 
-      const caseCountLayer = await app.fetchData(new Date('2021-03-18'))
+      const _dateRange = await app.getDateRange()
+      const _initValues = { ...selectedValues, fetchDate: _dateRange.maxDate }
+
+      setDateRange(_dateRange)
+      setSelectedValues(_initValues)
+      const caseCountLayer = await app.fetchData(_initValues)
 
       map.addSource('ph-covid19-source', {
         type: 'geojson',
@@ -67,38 +76,35 @@ export const Mapbox = () => {
             ['to-color', '#b30000'],
           ],
           'fill-outline-color': '#000000',
-          'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.9, 0.5],
+          'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.9, 0.7],
         },
       })
 
       map.on('mousemove', 'ph-covid19-layer', (e) => {
         if (e.features.length > 0) {
-          if (hoveredProvinceRef.current && hoveredProvinceRef.current > -1) {
+          if (hoveredFeatureRef.current && hoveredFeatureRef.current > -1) {
             map.setFeatureState(
-              { source: 'ph-covid19-source', id: hoveredProvinceRef.current },
+              { source: 'ph-covid19-source', id: hoveredFeatureRef.current },
               { hover: false }
             )
           }
 
-          let _hoveredProvince = e.features[0].id
+          let _hoveredFeature = e.features[0].id
 
-          map.setFeatureState(
-            { source: 'ph-covid19-source', id: _hoveredProvince },
-            { hover: true }
-          )
+          map.setFeatureState({ source: 'ph-covid19-source', id: _hoveredFeature }, { hover: true })
 
-          sethoveredProvince(_hoveredProvince)
+          setHoveredFeature(_hoveredFeature)
         }
       })
 
       map.on('mouseleave', 'ph-covid19-layer', () => {
-        if (hoveredProvinceRef.current) {
+        if (hoveredFeatureRef.current) {
           map.setFeatureState(
-            { source: 'ph-covid19-source', id: hoveredProvinceRef.current },
+            { source: 'ph-covid19-source', id: hoveredFeatureRef.current },
             { hover: false }
           )
         }
-        sethoveredProvince(null)
+        setHoveredFeature(null)
       })
     })
 
@@ -106,5 +112,59 @@ export const Mapbox = () => {
     return () => map.remove()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return <div className="absolute top-0 bottom-0 left-0 right-0" ref={mapContainerRef} />
+  const reloadCaseCountLayer = async (newValues) => {
+    setSelectedValues(newValues)
+    const caseCountLayer = await app.fetchData(newValues)
+    map.getSource('ph-covid19-source').setData(caseCountLayer)
+  }
+
+  return (
+    <>
+      <div className="absolute top-0 bottom-0 left-0 right-0" ref={mapContainerRef} />
+      <div className="absolute top-0 left-0 p-3">
+        <div className="bg-white p-5 rounded-lg shadow space-y-3">
+          {dateRange.minDate && (
+            <fieldset className="flex flex-col space-y-1">
+              <label htmlFor="date-selector" className="font-medium">
+                Date:
+              </label>
+              <DatePicker
+                name="date-selector"
+                className="ring-2 ring-teal-600 p-1 rounded rounded-md"
+                popperClassName="bg-teal-300"
+                selected={selectedValues.fetchDate}
+                minDate={dateRange.minDate}
+                maxDate={dateRange.maxDate}
+                showYearDropdown
+                showMonthDropdown
+                onChange={(d) => reloadCaseCountLayer({ ...selectedValues, fetchDate: d })}
+              />
+            </fieldset>
+          )}
+          <fieldset className="flex flex-col space-y-1">
+            <label htmlFor="health-status" className="font-medium">
+              Health Status:
+            </label>
+            <select
+              name="health-status"
+              value={selectedValues.healthStatus}
+              className="ring-2 ring-teal-600 p-1 rounded rounded-md"
+              onChange={(e) =>
+                reloadCaseCountLayer({ ...selectedValues, healthStatus: e.target.value })
+              }
+            >
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="recovered">Recovered</option>
+              <option value="asymptomatic">Asymptomatic</option>
+              <option value="mild">Mild</option>
+              <option value="severe">Severe</option>
+              <option value="critical">Critical</option>
+              <option value="died">Deaths</option>
+            </select>
+          </fieldset>
+        </div>
+      </div>
+    </>
+  )
 }
