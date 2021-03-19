@@ -5,9 +5,11 @@ module.exports = {
   darkMode: false, // or 'media' or 'class'
   theme: {
     extend: {},
-    ringColor: {
+    colors: {
       white: colors.white,
+      black: colors.black,
       teal: colors.teal,
+      gray: colors.gray,
     },
   },
   variants: {
