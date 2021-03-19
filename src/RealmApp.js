@@ -125,7 +125,7 @@ export const RealmAppProvider = ({ appId, children }) => {
       _id: 0,
     }
 
-    const caseCount =
+    let caseCountGeoJSON =
       (await casesCol
         .aggregate([
           {
@@ -142,35 +142,33 @@ export const RealmAppProvider = ({ appId, children }) => {
         ])
         .catch((e) => console.log(e))) || []
 
-    const phCovidSrc = await axios
+    const phProvGeoJSON = await axios
       .get(PH_PROV_GEOJSON)
       .then((response) => response.data)
       .catch((e) => console.log(e))
 
-    if (phCovidSrc) {
-      const { type: ftype, crs, features } = phCovidSrc
-
-      let caseCountSrc = features.map(({ type: mtype, properties, geometry }, idx) => {
-        const matchMapData = caseCount.filter(({ regionResGeo, provResGeo }) => {
-          return properties.region === regionResGeo && properties.province === provResGeo
+    if (phProvGeoJSON) {
+      caseCountGeoJSON = phProvGeoJSON.features.map((f, idx) => {
+        const matchMapData = caseCountGeoJSON.filter(({ regionResGeo, provResGeo }) => {
+          return f.properties.region === regionResGeo && f.properties.province === provResGeo
         })
 
-        const { region, province } = properties
+        const { region, province } = f.properties
 
         if (matchMapData.length > 0) {
-          return matchMapData.map((m) => {
-            const { healthStatus, count } = m
-            const newProp = { region, province, healthStatus, count }
-            return { id: idx, type: mtype, properties: newProp, geometry }
-          })
+          let { count } = matchMapData[0]
+          if (!Number.isInteger(count)) count = 0
+          const newProp = { region, province, count }
+          return { ...f, properties: newProp, id: idx }
         } else {
-          return { id: idx, type: mtype, properties: properties, geometry }
+          const newProp = { region, province, count: 0 }
+          return { ...f, properties: newProp, id: idx }
         }
       })
 
-      caseCountSrc = { type: ftype, crs, features: [].concat(...caseCountSrc) }
+      caseCountGeoJSON = { ...phProvGeoJSON, features: caseCountGeoJSON }
 
-      return caseCountSrc
+      return caseCountGeoJSON
     }
 
     return EMPTY_GEOJSON
