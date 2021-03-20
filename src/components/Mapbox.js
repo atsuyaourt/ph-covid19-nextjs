@@ -8,14 +8,15 @@ import { MapControl, LoadingMsg, MapLegend } from '.'
 // eslint-disable-next-line no-undef
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN
 
-const REDS = ['#ffffff', '#fef0d9', '#fdd49e', '#fdbb84', '#fc8d59', '#e34a33', '#b30000']
+const REDS = ['#ffffff', '#fef0d9', '#fdcc8a', '#fc8d59', '#e34a33', '#b30000']
 
 export const Mapbox = () => {
   const mapContainerRef = useRef(null)
   const [map, setMap] = useState(null)
   const [selectedValues, setSelectedValues] = useState({ fetchDate: '', healthStatus: '' })
   const [dateRange, setDateRange] = useState({})
-  const [threshVal, _setThreshVal] = useState(0)
+  const [legendLabelArr, setLegendLabelArr] = useState([])
+  const [legendColArr, setLegendColArr] = useState([])
   const [showLoadingMsg, setShowLoadingMsg] = useState(true)
   const [hoveredFeature, _setHoveredFeature] = useState(null)
   const hoveredFeatureRef = useRef(hoveredFeature)
@@ -50,13 +51,18 @@ export const Mapbox = () => {
         data: caseCountLayer,
       })
 
+      const caseCountArr = caseCountLayer.features
+        .map((o) => o.properties.count)
+        .filter((v) => Number.isInteger(v))
+      const layerFillColor = genLayerFillColor(caseCountArr, REDS)
+
       map.addLayer({
         id: 'ph-covid19',
         type: 'fill',
         source: 'ph-covid19',
         layout: {},
         paint: {
-          'fill-color': genLayerFillColor(0, threshVal),
+          'fill-color': layerFillColor,
           'fill-outline-color': '#000000',
           'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.9, 0.7],
         },
@@ -96,62 +102,71 @@ export const Mapbox = () => {
       setMap(map)
       setDateRange(_dateRange)
       setSelectedValues(_initValues)
-      setThreshVal(caseCountLayer)
     })
 
     // clean up on unmount
     return () => map.remove()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    try {
-      map &&
-        threshVal > 0 &&
-        map.setPaintProperty('ph-covid19', 'fill-color', genLayerFillColor(0, threshVal))
-    } catch (error) {
-      console.log(error)
-    }
-  }, [threshVal])
-
   useEffect(async () => {
     setShowLoadingMsg(true)
 
     const caseCountLayer = await app.fetchData(selectedValues)
     try {
-      map && map.getSource('ph-covid19').setData(caseCountLayer)
+      if (typeof map !== 'undefined' && map !== null) {
+        map.getSource('ph-covid19').setData(caseCountLayer)
+        const caseCountArr = caseCountLayer.features
+          .map((o) => o.properties.count)
+          .filter((v) => Number.isInteger(v))
+
+        const fillColArr = genLayerFillColor(caseCountArr, REDS)
+
+        caseCountArr > 0 && map.setPaintProperty('ph-covid19', 'fill-color', fillColArr)
+      }
     } catch (error) {
       console.log(error)
     }
-
-    setThreshVal(caseCountLayer)
   }, [selectedValues])
 
-  const genLayerFillColor = (minVal, maxVal) => {
+  const genLayerFillColor = (valArr, colArr) => {
+    const _legendLabelArr = []
+    const _legendColArr = []
     const lyrFillClr = ['interpolate', ['linear'], ['get', 'count']]
+
+    const sortedArr = valArr.sort((a, b) => a - b)
+    const minVal = 0
+    const maxVal = valArr.reduce((a, b) => {
+      return a > b ? a : b
+    }, 0)
+
     if (maxVal === minVal) {
       lyrFillClr.push(minVal)
-      lyrFillClr.push(['to-color', REDS[1]])
+      lyrFillClr.push(['to-color', colArr[1]])
     } else {
-      const inc = (maxVal - minVal) / 6
-      REDS.forEach((c, idx) => {
-        lyrFillClr.push(minVal + inc * idx)
-        lyrFillClr.push(['to-color', c])
+      let plevVal = ''
+      let clevVal = ''
+      colArr.forEach((c, idx) => {
+        const pos = (sortedArr.length - 1) * (idx / colArr.length)
+        const base = Math.floor(pos)
+        const rest = pos - base
+        if (sortedArr[base + 1] !== undefined) {
+          clevVal = sortedArr[base] + rest * (sortedArr[base + 1] - sortedArr[base])
+          lyrFillClr.push()
+        } else {
+          clevVal = sortedArr[base]
+        }
+        if (clevVal !== plevVal) {
+          _legendLabelArr.push(clevVal)
+          _legendColArr.push(c)
+          lyrFillClr.push(clevVal)
+          lyrFillClr.push(['to-color', c])
+          plevVal = clevVal
+        }
       })
     }
+    setLegendLabelArr(_legendLabelArr.map((l) => String(l)))
+    setLegendColArr(_legendColArr)
     return lyrFillClr
-  }
-
-  const setThreshVal = (caseCountLayer) => {
-    let maxCount = caseCountLayer.features
-      .map((o) => o.properties.count)
-      .filter((v) => Number.isInteger(v))
-      .reduce((prev, current) => {
-        return prev > current ? prev : current
-      }, 0)
-
-    if (maxCount > 500) maxCount = 500
-
-    _setThreshVal(maxCount)
   }
 
   return (
@@ -167,7 +182,9 @@ export const Mapbox = () => {
         />
       )}
       {showLoadingMsg && <LoadingMsg />}
-      {!showLoadingMsg && <MapLegend title="Number of People" max={threshVal} colorArr={REDS} />}
+      {!showLoadingMsg && (
+        <MapLegend title="Number of People" labelArr={legendLabelArr} colorArr={legendColArr} />
+      )}
     </>
   )
 }
