@@ -1,11 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react'
-
 import mapboxgl from 'mapbox-gl'
-import DatePicker from 'react-datepicker'
 
 import { useRealmApp } from '../RealmApp'
 
-import 'react-datepicker/dist/react-datepicker.css'
+import { MapControl, LoadingMsg, MapLegend } from '.'
 
 // eslint-disable-next-line no-undef
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN
@@ -159,89 +157,17 @@ export const Mapbox = () => {
   return (
     <>
       <div className="absolute top-0 bottom-0 left-0 right-0" ref={mapContainerRef} />
-      <div className="absolute top-0 bg-white p-4 m-3 rounded-lg shadow-xl space-y-3">
-        {dateRange.minDate && (
-          <fieldset className="flex flex-col space-y-1">
-            <label htmlFor="date-selector" className="font-medium">
-              Date:
-            </label>
-            <DatePicker
-              name="date-selector"
-              className="ring-2 ring-teal-600 p-1 rounded rounded-md"
-              popperClassName="bg-teal-300"
-              selected={selectedValues.fetchDate}
-              minDate={dateRange.minDate}
-              maxDate={dateRange.maxDate}
-              showYearDropdown
-              showMonthDropdown
-              onChange={(d) => setSelectedValues({ ...selectedValues, fetchDate: d })}
-            />
-          </fieldset>
-        )}
-        <fieldset className="flex flex-col space-y-1">
-          <label htmlFor="health-status" className="font-medium">
-            Health Status:
-          </label>
-          <select
-            name="health-status"
-            value={selectedValues.healthStatus}
-            className="ring-2 ring-teal-600 p-1 rounded rounded-md"
-            onChange={(e) => setSelectedValues({ ...selectedValues, healthStatus: e.target.value })}
-          >
-            <option value="">All</option>
-            <option value="active">Active</option>
-            <option value="recovered">Recovered</option>
-            <option value="asymptomatic">Asymptomatic</option>
-            <option value="mild">Mild</option>
-            <option value="severe">Severe</option>
-            <option value="critical">Critical</option>
-            <option value="died">Deaths</option>
-          </select>
-        </fieldset>
-      </div>
-      {showLoadingMsg && (
-        <div className="fixed h-full w-full flex items-center justify-center bg-opacity-50 bg-gray-700">
-          <div className="flex bg-teal-600 text-white text-2xl p-3 items-center justify-center rounded-lg shadow-2xl">
-            <svg
-              className="animate-spin mr-2 h-6 w-6 text-white"
-              xmlns="http://www.w3.org/2000/svg"
-              fill="none"
-              viewBox="0 0 24 24"
-            >
-              <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-              ></circle>
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-            Loading...
-          </div>
-        </div>
+      {Object.prototype.toString.call(selectedValues.fetchDate) === '[object Date]' && (
+        <MapControl
+          minDate={dateRange.minDate}
+          maxDate={dateRange.maxDate}
+          dateSelected={selectedValues.fetchDate}
+          healthStatSelected={selectedValues.healthStatus}
+          onChange={(fetchDate, healthStatus) => setSelectedValues({ fetchDate, healthStatus })}
+        />
       )}
-      <div className="absolute top-0 right-0 bg-white p-3 m-3 rounded-lg shadow-2xl flex flex-col items-center justify-center">
-        <span className="text-lg font-semibold">Number of People</span>
-        {threshVal !== 0 && (
-          <div className="flex flex-col">
-            <div className="flex border">
-              {REDS.map((clr, idx) => (
-                <div className="w-7 h-5" style={{ backgroundColor: `${clr}` }} key={idx}></div>
-              ))}
-            </div>
-            <div className="flex justify-between text-sm">
-              <span>0</span>
-              <span>{threshVal}</span>
-            </div>
-          </div>
-        )}
-      </div>
+      {showLoadingMsg && <LoadingMsg />}
+      {!showLoadingMsg && <MapLegend title="Number of People" max={threshVal} colorArr={REDS} />}
     </>
   )
 }

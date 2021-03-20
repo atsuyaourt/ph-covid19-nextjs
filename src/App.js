@@ -3,7 +3,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { useRealmApp, RealmAppProvider } from './RealmApp'
 
-import { Mapbox } from './components/Mapbox'
+import { Mapbox } from './components'
 
 import logo from './logo.svg' // eslint-disable-line no-unused-vars
 
