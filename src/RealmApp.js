@@ -59,32 +59,36 @@ export const RealmAppProvider = ({ appId, children }) => {
     return user
   }
 
-  const fetchData = async ({ fetchDate, healthStatus }) => {
+  const fetchData = async ({ fetchDate, healthStatus }, mode) => {
     const casesCol = currentUser.mongoClient('mongodb-atlas').db('default').collection('cases')
 
     if (Object.prototype.toString.call(fetchDate) !== '[object Date]') return EMPTY_GEOJSON
 
-    const datePHT = new Date(`${dateFormat(fetchDate, 'yyyy-MM-dd')}T00:00:00.000+08:00`)
+    let dateCond = ''
+    if (mode === 1) dateCond = new Date(`${dateFormat(fetchDate, 'yyyy-MM-dd')}T00:00:00.000+08:00`)
+    else
+      dateCond = {
+        $lte: new Date(`${dateFormat(fetchDate, 'yyyy-MM-dd')}T00:00:00.000+08:00`),
+      }
 
     let matchCond = {
       deletedAt: {
         $exists: 0,
       },
-      dateRepConf: datePHT,
     }
 
     switch (healthStatus) {
       case 'recovered':
         matchCond = {
           ...matchCond,
-          dateRecover: datePHT,
+          dateRecover: dateCond,
           healthStatus,
         }
         break
       case 'died':
         matchCond = {
           ...matchCond,
-          dateDied: datePHT,
+          dateDied: dateCond,
           healthStatus,
         }
         break
@@ -94,21 +98,21 @@ export const RealmAppProvider = ({ appId, children }) => {
       case 'critical':
         matchCond = {
           ...matchCond,
-          dateRepConf: datePHT,
+          dateRepConf: dateCond,
           healthStatus,
         }
         break
       case 'active':
         matchCond = {
           ...matchCond,
-          dateRepConf: datePHT,
+          dateRepConf: dateCond,
           healthStatus: { $in: ['asymptomatic', 'mild', 'severe', 'critical'] },
         }
         break
       default:
         matchCond = {
           ...matchCond,
-          dateRepConf: datePHT,
+          dateRepConf: dateCond,
         }
         break
     }
@@ -121,7 +125,7 @@ export const RealmAppProvider = ({ appId, children }) => {
     const project = {
       regionResGeo: '$_id.regionResGeo',
       provResGeo: '$_id.provResGeo',
-      count: 1,
+      count: { $size: '$uniqueId' },
       _id: 0,
     }
 
@@ -135,7 +139,7 @@ export const RealmAppProvider = ({ appId, children }) => {
           {
             $group: {
               _id: groupId,
-              count: { $sum: 1 },
+              uniqueId: { $addToSet: '$_id' },
             },
           },
           { $project: project },
