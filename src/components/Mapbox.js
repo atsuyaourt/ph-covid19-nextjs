@@ -68,6 +68,24 @@ export const Mapbox = () => {
         },
       })
 
+      map.on('click', 'ph-covid19', (e) => {
+        const { province, count } = e.features[0].properties
+        new mapboxgl.Popup()
+          .setLngLat(e.lngLat)
+          .setHTML(
+            `
+            <div class="flex flex-col space-y-2 m-1">
+              <div class="text-base font-semibold border-b border-gray-300">${province}</div>
+              <div class="flex flex-row">
+                <div class="text-sm font-medium pr-1">Count:</div>
+                <div class="text-sm">${new Intl.NumberFormat().format(count)}</div>
+              </div>
+            </div>
+            `
+          )
+          .addTo(map)
+      })
+
       map.on('mousemove', 'ph-covid19', (e) => {
         if (e.features.length > 0) {
           if (hoveredFeatureRef.current && hoveredFeatureRef.current > -1) {
@@ -85,7 +103,12 @@ export const Mapbox = () => {
         }
       })
 
+      map.on('mouseenter', 'ph-covid19', () => {
+        map.getCanvas().style.cursor = 'pointer'
+      })
+
       map.on('mouseleave', 'ph-covid19', () => {
+        map.getCanvas().style.cursor = ''
         if (hoveredFeatureRef.current) {
           map.setFeatureState(
             { source: 'ph-covid19', id: hoveredFeatureRef.current },
@@ -183,7 +206,7 @@ export const Mapbox = () => {
       )}
       {showLoadingMsg && <LoadingMsg />}
       {!showLoadingMsg && (
-        <MapLegend title="Number of People" labelArr={legendLabelArr} colorArr={legendColArr} />
+        <MapLegend title="Number of Cases" labelArr={legendLabelArr} colorArr={legendColArr} />
       )}
     </>
   )
