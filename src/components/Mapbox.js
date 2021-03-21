@@ -5,7 +5,6 @@ import { useRealmApp } from '../RealmApp'
 
 import { MapControl, LoadingMsg, MapLegend } from '.'
 
-// eslint-disable-next-line no-undef
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN
 
 const REDS = ['#ffffff', '#fef0d9', '#fdcc8a', '#fc8d59', '#e34a33', '#b30000']
@@ -131,24 +130,27 @@ export const Mapbox = () => {
     return () => map.remove()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(async () => {
+  useEffect(() => {
     setShowLoadingMsg(true)
 
-    const caseCountLayer = await app.fetchData(selectedValues)
-    try {
-      if (typeof map !== 'undefined' && map !== null) {
-        map.getSource('ph-covid19').setData(caseCountLayer)
-        const caseCountArr = caseCountLayer.features
-          .map((o) => o.properties.count)
-          .filter((v) => Number.isInteger(v))
+    const updateMap = async () => {
+      const caseCountLayer = await app.fetchData(selectedValues)
+      try {
+        if (typeof map !== 'undefined' && map !== null) {
+          map.getSource('ph-covid19').setData(caseCountLayer)
+          const caseCountArr = caseCountLayer.features
+            .map((o) => o.properties.count)
+            .filter((v) => Number.isInteger(v))
 
-        const fillColArr = genLayerFillColor(caseCountArr, REDS)
+          const fillColArr = genLayerFillColor(caseCountArr, REDS)
 
-        caseCountArr > 0 && map.setPaintProperty('ph-covid19', 'fill-color', fillColArr)
+          caseCountArr > 0 && map.setPaintProperty('ph-covid19', 'fill-color', fillColArr)
+        }
+      } catch (error) {
+        console.log(error)
       }
-    } catch (error) {
-      console.log(error)
     }
+    updateMap()
   }, [selectedValues])
 
   const genLayerFillColor = (valArr, colArr) => {

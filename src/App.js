@@ -1,4 +1,3 @@
-import { hot } from 'react-hot-loader'
 import React from 'react'
 import PropTypes from 'prop-types'
 import { useRealmApp, RealmAppProvider } from './RealmApp'
@@ -29,4 +28,4 @@ function App() {
   )
 }
 
-export default hot(module)(App) // eslint-disable-line no-undef
+export default App
