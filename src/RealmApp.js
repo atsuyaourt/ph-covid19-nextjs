@@ -1,11 +1,7 @@
-import React from 'react'
+import React, { useState, useContext } from 'react'
 import PropTypes from 'prop-types'
-import * as Realm from 'realm-web'
-import axios from 'axios'
+import { App, Credentials } from 'realm-web'
 import { format as dateFormat } from 'date-fns'
-
-// eslint-disable-next-line no-unused-vars
-import PH_PROV_GEOJSON from './data/ph-prov.geojson'
 
 const RealmAppContext = React.createContext()
 
@@ -15,7 +11,7 @@ const EMPTY_GEOJSON = {
 }
 
 export const useRealmApp = () => {
-  const app = React.useContext(RealmAppContext)
+  const app = useContext(RealmAppContext)
   if (!app) {
     throw new Error(`You must call useRealmApp() inside of a <RealmAppProvider />`)
   }
@@ -23,12 +19,14 @@ export const useRealmApp = () => {
 }
 
 export const RealmAppProvider = ({ appId, children }) => {
-  const [app, setApp] = React.useState(new Realm.App(appId))
+  const [app, setApp] = useState(new App(appId))
+  let phProvGeoJSON = null
+
   React.useEffect(() => {
-    setApp(new Realm.App(appId))
+    setApp(new App(appId))
   }, [appId])
   // Wrap the Realm.App object's user state with React state
-  const [currentUser, setCurrentUser] = React.useState(app.currentUser)
+  const [currentUser, setCurrentUser] = useState(app.currentUser)
 
   const logIn = async (credentials) => {
     await app.logIn(credentials)
@@ -45,13 +43,13 @@ export const RealmAppProvider = ({ appId, children }) => {
   }
 
   const loginAnonymous = async () => {
-    app.logIn(Realm.Credentials.anonymous())
+    app.logIn(Credentials.anonymous())
     setCurrentUser(app.currentUser)
   }
 
   const loginApiKey = async (apiKey) => {
     // Create an API Key credential
-    const credentials = Realm.Credentials.apiKey(apiKey)
+    const credentials = Credentials.apiKey(apiKey)
     // Authenticate the user
     const user = await app.logIn(credentials)
     // `App.currentUser` updates to match the logged in user
@@ -60,7 +58,9 @@ export const RealmAppProvider = ({ appId, children }) => {
   }
 
   const fetchData = async ({ fetchDate, healthStatus }, mode) => {
-    const casesCol = currentUser.mongoClient('mongodb-atlas').db('default').collection('cases')
+    const mongodb = currentUser.mongoClient('mongodb-atlas').db('default')
+    const casesCol = mongodb.collection('cases')
+    const geomapsCol = mongodb.collection('geomaps')
 
     if (Object.prototype.toString.call(fetchDate) !== '[object Date]') return EMPTY_GEOJSON
 
@@ -146,10 +146,9 @@ export const RealmAppProvider = ({ appId, children }) => {
         ])
         .catch((e) => console.log(e))) || []
 
-    const phProvGeoJSON = await axios
-      .get(PH_PROV_GEOJSON)
-      .then((response) => response.data)
-      .catch((e) => console.log(e))
+    if (phProvGeoJSON === null) {
+      phProvGeoJSON = await geomapsCol.findOne({ name: 'ph-prov' }).then((d) => d.geo)
+    }
 
     if (phProvGeoJSON) {
       caseCountGeoJSON = phProvGeoJSON.features.map((f, idx) => {
