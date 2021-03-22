@@ -5,7 +5,7 @@ import axios from 'axios'
 import { format as dateFormat } from 'date-fns'
 
 // eslint-disable-next-line no-unused-vars
-import PH_PROV_GEOJSON from './data/ph/province.geojson'
+import PH_PROV_GEOJSON from './data/ph-prov.geojson'
 
 const RealmAppContext = React.createContext()
 
