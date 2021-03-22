@@ -3,22 +3,23 @@ import mapboxgl from 'mapbox-gl'
 
 import { useRealmApp } from '../RealmApp'
 
-import { MapControl, LoadingMsg, MapLegend } from '.'
+import { MapControl, LoadingMsg, MapLegend, MapStats } from '.'
 
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN
 
 const REDS = ['#ffffff', '#fef0d9', '#fdcc8a', '#fc8d59', '#e34a33', '#b30000']
 
 export const Mapbox = () => {
+  const app = useRealmApp()
   const mapContainerRef = useRef(null)
   const [map, setMap] = useState(null)
+  const [caseStats, setCaseStats] = useState(null)
   const [selectedValues, setSelectedValues] = useState({ fetchDate: '', healthStatus: '' })
   const [legendLabelArr, setLegendLabelArr] = useState([])
   const [legendColArr, setLegendColArr] = useState([])
   const [showLoadingMsg, setShowLoadingMsg] = useState(true)
   const [hoveredFeature, _setHoveredFeature] = useState(null)
   const hoveredFeatureRef = useRef(hoveredFeature)
-  const app = useRealmApp()
 
   let dateRange = {}
 
@@ -124,34 +125,33 @@ export const Mapbox = () => {
 
       setMap(map)
       setSelectedValues(_initValues)
+      setCaseStats(await app.fetchStats())
     })
 
     // clean up on unmount
     return () => map.remove()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
+  const updateLayers = async ({ fetchDate, healthStatus }) => {
     setShowLoadingMsg(true)
+    setSelectedValues({ fetchDate, healthStatus })
 
-    const updateMap = async () => {
-      const caseCountLayer = await app.fetchData(selectedValues)
-      try {
-        if (typeof map !== 'undefined' && map !== null) {
-          map.getSource('ph-covid19').setData(caseCountLayer)
-          const caseCountArr = caseCountLayer.features
-            .map((o) => o.properties.count)
-            .filter((v) => Number.isInteger(v))
+    try {
+      const caseCountLayer = await app.fetchData({ fetchDate, healthStatus })
 
-          const fillColArr = genLayerFillColor(caseCountArr, REDS)
+      map.getSource('ph-covid19').setData(caseCountLayer)
+      const caseCountArr = caseCountLayer.features
+        .map((o) => o.properties.count)
+        .filter((v) => Number.isInteger(v))
 
-          caseCountArr > 0 && map.setPaintProperty('ph-covid19', 'fill-color', fillColArr)
-        }
-      } catch (error) {
-        console.log(error)
-      }
+      const fillColArr = genLayerFillColor(caseCountArr, REDS)
+
+      caseCountArr > 0 && map.setPaintProperty('ph-covid19', 'fill-color', fillColArr)
+    } catch (error) {
+      setShowLoadingMsg(false)
+      console.log(error)
     }
-    updateMap()
-  }, [selectedValues])
+  }
 
   const genLayerFillColor = (valArr, colArr) => {
     const _legendLabelArr = []
@@ -197,19 +197,26 @@ export const Mapbox = () => {
   return (
     <>
       <div className="absolute top-0 bottom-0 left-0 right-0" ref={mapContainerRef} />
-      {Object.prototype.toString.call(selectedValues.fetchDate) === '[object Date]' && (
-        <MapControl
-          minDate={dateRange.minDate}
-          maxDate={dateRange.maxDate}
-          dateSelected={selectedValues.fetchDate}
-          healthStatSelected={selectedValues.healthStatus}
-          onChange={(fetchDate, healthStatus) => setSelectedValues({ fetchDate, healthStatus })}
-        />
-      )}
+      <div className="absolute top-0 left-0 flex flex-col justify-between">
+        {selectedValues.fetchDate && (
+          <MapControl
+            minDate={dateRange.minDate}
+            maxDate={dateRange.maxDate}
+            dateSelected={selectedValues.fetchDate}
+            healthStatSelected={selectedValues.healthStatus}
+            onChange={(fetchDate, healthStatus) => updateLayers({ fetchDate, healthStatus })}
+          />
+        )}
+        {caseStats && <MapStats data={caseStats} />}
+      </div>
+      <div className="absolute top-0 right-0 flex flex-col">
+        <div className="flex flex-col">
+          {!showLoadingMsg && (
+            <MapLegend title="Number of Cases" labelArr={legendLabelArr} colorArr={legendColArr} />
+          )}
+        </div>
+      </div>
       {showLoadingMsg && <LoadingMsg />}
-      {!showLoadingMsg && (
-        <MapLegend title="Number of Cases" labelArr={legendLabelArr} colorArr={legendColArr} />
-      )}
     </>
   )
 }

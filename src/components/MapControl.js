@@ -8,7 +8,7 @@ import 'react-datepicker/dist/react-datepicker.css'
 
 export const MapControl = ({ minDate, maxDate, dateSelected, healthStatSelected, onChange }) => {
   return (
-    <div className="absolute top-0 bg-white p-4 m-3 rounded-lg shadow-xl space-y-3">
+    <div className="bg-white p-4 m-3 h-44 rounded-lg shadow-xl space-y-3">
       {minDate && (
         <fieldset className="flex flex-col space-y-1">
           <label htmlFor="date-selector" className="font-medium">

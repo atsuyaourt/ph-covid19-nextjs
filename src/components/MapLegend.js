@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 
 export const MapLegend = ({ title, colorArr, labelArr }) => {
   return (
-    <div className="absolute top-0 right-0 bg-white p-3 m-3 rounded-lg shadow-2xl flex flex-col items-center justify-center">
+    <div className="bg-white p-3 m-3 rounded-lg shadow-2xl flex flex-col items-center justify-center">
       <span className="text-lg font-semibold">{title}</span>
       {labelArr.length !== 0 && (
         <div className="flex flex-col">
