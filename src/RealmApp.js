@@ -96,6 +96,7 @@ export const RealmAppProvider = ({ appId, children }) => {
         break
       case 'asymptomatic':
       case 'mild':
+      case 'moderate':
       case 'severe':
       case 'critical':
         matchCond = {
@@ -108,7 +109,7 @@ export const RealmAppProvider = ({ appId, children }) => {
         matchCond = {
           ...matchCond,
           dateRepConf: dateCond,
-          healthStatus: { $in: ['asymptomatic', 'mild', 'severe', 'critical'] },
+          healthStatus: { $in: ['asymptomatic', 'mild', 'moderate', 'severe', 'critical'] },
         }
         break
       default:
@@ -208,19 +209,17 @@ export const RealmAppProvider = ({ appId, children }) => {
       .then((d) => d[0])
   }
 
-  const fetchStats = () => {
+  const fetchStats = async () => {
     const mongodb = currentUser.mongoClient('mongodb-atlas').db('default')
     const casesCol = mongodb.collection('cases')
 
-    const matchCond = {
-      deletedAt: {
-        $exists: 0,
-      },
-    }
-
-    return casesCol.aggregate([
+    let totCase = await casesCol.aggregate([
       {
-        $match: matchCond,
+        $match: {
+          deletedAt: {
+            $exists: 0,
+          },
+        },
       },
       { $sort: { createdAt: -1 } },
       {
@@ -232,6 +231,52 @@ export const RealmAppProvider = ({ appId, children }) => {
       { $group: { _id: '$healthStatus', count: { $sum: 1 } } },
       { $project: { healthStatus: '$_id', count: 1, _id: 0 } },
     ])
+    let _active = totCase
+      .filter((c) =>
+        ['asymptomatic', 'mild', 'moderate', 'severe', 'critical'].includes(c.healthStatus)
+      )
+      .map((o) => o.count)
+      .reduce((a, b) => a + b, 0)
+    totCase = totCase.reduce((o, { healthStatus, count }) => {
+      o[healthStatus] = count
+      return o
+    }, {})
+    totCase['active'] = _active
+
+    const dateRange = await getDateRange()
+
+    let newCase = await casesCol.aggregate([
+      {
+        $match: {
+          deletedAt: {
+            $exists: 0,
+          },
+          dateRepConf: dateRange.maxDate,
+        },
+      },
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: '$caseCode',
+          healthStatus: { $first: '$healthStatus' },
+        },
+      },
+      { $group: { _id: '$healthStatus', count: { $sum: 1 } } },
+      { $project: { healthStatus: '$_id', count: 1, _id: 0 } },
+    ])
+    let _newActive = newCase
+      .filter((c) =>
+        ['asymptomatic', 'mild', 'moderate', 'severe', 'critical'].includes(c.healthStatus)
+      )
+      .map((o) => o.count)
+      .reduce((a, b) => a + b, 0)
+    newCase = newCase.reduce((o, { healthStatus, count }) => {
+      o[healthStatus] = count
+      return o
+    }, {})
+    newCase['active'] = _newActive
+
+    return { totCase, newCase }
   }
 
   const wrapped = {
