@@ -13,13 +13,14 @@ export const Mapbox = () => {
   const mapContainerRef = useRef(null)
   const [map, setMap] = useState(null)
   const [selectedValues, setSelectedValues] = useState({ fetchDate: '', healthStatus: '' })
-  const [dateRange, setDateRange] = useState({})
   const [legendLabelArr, setLegendLabelArr] = useState([])
   const [legendColArr, setLegendColArr] = useState([])
   const [showLoadingMsg, setShowLoadingMsg] = useState(true)
   const [hoveredFeature, _setHoveredFeature] = useState(null)
   const hoveredFeatureRef = useRef(hoveredFeature)
   const app = useRealmApp()
+
+  let dateRange = {}
 
   const setHoveredFeature = (data) => {
     hoveredFeatureRef.current = data
@@ -40,8 +41,8 @@ export const Mapbox = () => {
     map.addControl(new mapboxgl.NavigationControl(), 'bottom-right')
 
     map.once('load', async () => {
-      const _dateRange = await app.getDateRange()
-      const _initValues = { ...selectedValues, fetchDate: _dateRange.maxDate }
+      dateRange = await app.getDateRange()
+      const _initValues = { ...selectedValues, fetchDate: dateRange.maxDate }
 
       const caseCountLayer = await app.fetchData(_initValues)
 
@@ -122,7 +123,6 @@ export const Mapbox = () => {
       })
 
       setMap(map)
-      setDateRange(_dateRange)
       setSelectedValues(_initValues)
     })
 
