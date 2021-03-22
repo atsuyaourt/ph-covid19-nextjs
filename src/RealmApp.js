@@ -75,6 +75,8 @@ export const RealmAppProvider = ({ appId, children }) => {
       deletedAt: {
         $exists: 0,
       },
+      regionResGeo: { $type: 'string' },
+      provResGeo: { $type: 'string' },
     }
 
     switch (healthStatus) {
@@ -117,18 +119,6 @@ export const RealmAppProvider = ({ appId, children }) => {
         break
     }
 
-    const groupId = {
-      regionResGeo: '$regionResGeo',
-      provResGeo: '$provResGeo',
-    }
-
-    const project = {
-      regionResGeo: '$_id.regionResGeo',
-      provResGeo: '$_id.provResGeo',
-      count: { $size: '$uniqueId' },
-      _id: 0,
-    }
-
     let caseCountGeoJSON =
       (await casesCol
         .aggregate([
@@ -138,11 +128,28 @@ export const RealmAppProvider = ({ appId, children }) => {
           { $sort: { createdAt: -1 } },
           {
             $group: {
-              _id: groupId,
-              uniqueId: { $addToSet: '$_id' },
+              _id: '$caseCode',
+              grpStr: {
+                $first: {
+                  $concat: ['$provResGeo', ',', '$regionResGeo'],
+                },
+              },
             },
           },
-          { $project: project },
+          {
+            $group: {
+              _id: '$grpStr',
+              count: { $sum: 1 },
+            },
+          },
+          {
+            $project: {
+              regionResGeo: { $arrayElemAt: [{ $split: ['$_id', ','] }, 1] },
+              provResGeo: { $arrayElemAt: [{ $split: ['$_id', ','] }, 0] },
+              count: 1,
+              _id: 0,
+            },
+          },
         ])
         .catch((e) => console.log(e))) || []
 
@@ -152,7 +159,7 @@ export const RealmAppProvider = ({ appId, children }) => {
 
     if (phProvGeoJSON) {
       caseCountGeoJSON = phProvGeoJSON.features.map((f, idx) => {
-        const matchMapData = caseCountGeoJSON.filter(({ regionResGeo, provResGeo }) => {
+        const matchMapData = caseCountGeoJSON.filter(({ provResGeo, regionResGeo }) => {
           return f.properties.region === regionResGeo && f.properties.province === provResGeo
         })
 
@@ -201,6 +208,32 @@ export const RealmAppProvider = ({ appId, children }) => {
       .then((d) => d[0])
   }
 
+  const fetchStats = () => {
+    const mongodb = currentUser.mongoClient('mongodb-atlas').db('default')
+    const casesCol = mongodb.collection('cases')
+
+    const matchCond = {
+      deletedAt: {
+        $exists: 0,
+      },
+    }
+
+    return casesCol.aggregate([
+      {
+        $match: matchCond,
+      },
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: '$caseCode',
+          healthStatus: { $first: '$healthStatus' },
+        },
+      },
+      { $group: { _id: '$healthStatus', count: { $sum: 1 } } },
+      { $project: { healthStatus: '$_id', count: 1, _id: 0 } },
+    ])
+  }
+
   const wrapped = {
     ...app,
     currentUser,
@@ -210,6 +243,7 @@ export const RealmAppProvider = ({ appId, children }) => {
     loginApiKey,
     fetchData,
     getDateRange,
+    fetchStats,
   }
   return <RealmAppContext.Provider value={wrapped}>{children}</RealmAppContext.Provider>
 }
