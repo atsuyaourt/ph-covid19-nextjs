@@ -21,7 +21,6 @@ export const useRealmApp = () => {
 
 export const RealmAppProvider = ({ appId, children }) => {
   const [app, setApp] = useState(new App(appId))
-  let phProvGeoJSON = null
 
   React.useEffect(() => {
     setApp(new App(appId))
@@ -58,7 +57,7 @@ export const RealmAppProvider = ({ appId, children }) => {
     return user
   }
 
-  const fetchCountProv = async (healthStatus) => {
+  const fetchCountProv = async (healthStatus, prevData) => {
     const mongodb = currentUser.mongoClient('mongodb-atlas').db('default')
     const casesCol = mongodb.collection('cases')
     const geomapsCol = mongodb.collection('geomaps')
@@ -87,7 +86,7 @@ export const RealmAppProvider = ({ appId, children }) => {
       }
     }
 
-    let caseCountGeoJSON =
+    let newData =
       (await casesCol
         .aggregate([
           {
@@ -113,21 +112,25 @@ export const RealmAppProvider = ({ appId, children }) => {
         ])
         .catch((e) => console.log(e))) || []
 
-    if (phProvGeoJSON === null) {
-      phProvGeoJSON = await geomapsCol.findOne({ name: 'ph-prov' }).then((d) => d.geo)
+    if (prevData === undefined) {
+      prevData =
+        (await geomapsCol
+          .findOne({ name: 'ph-prov' })
+          .then((d) => d.geo)
+          .catch((e) => console.log(e))) || []
     }
 
-    if (phProvGeoJSON) {
-      caseCountGeoJSON = phProvGeoJSON.features.map((f, idx) => {
-        const matchMapData = caseCountGeoJSON.filter(({ _id }) => {
+    if (prevData) {
+      newData = prevData.features.map((f, idx) => {
+        const matchData = newData.filter(({ _id }) => {
           const [provResGeo, regionResGeo] = _id.split(',')
           return f.properties.region === regionResGeo && f.properties.province === provResGeo
         })
 
         const { region, province } = f.properties
 
-        if (matchMapData.length > 0) {
-          let { count } = matchMapData[0]
+        if (matchData.length > 0) {
+          let { count } = matchData[0]
           if (!Number.isInteger(count)) count = 0
           const newProp = { region, province, count }
           return { ...f, properties: newProp, id: idx }
@@ -137,9 +140,9 @@ export const RealmAppProvider = ({ appId, children }) => {
         }
       })
 
-      caseCountGeoJSON = { ...phProvGeoJSON, features: caseCountGeoJSON }
+      newData = { ...prevData, features: newData }
 
-      return caseCountGeoJSON
+      return newData
     }
 
     return EMPTY_GEOJSON

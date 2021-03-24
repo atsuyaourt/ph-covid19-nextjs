@@ -139,7 +139,8 @@ export const Mapbox = () => {
     setSelectedValues({ healthStatus })
 
     try {
-      map.getSource('ph-covid19').setData(await app.fetchCountProv(healthStatus))
+      const lyrSrc = map.getSource('ph-covid19')
+      lyrSrc.setData(await app.fetchCountProv(healthStatus, lyrSrc._data))
     } catch (error) {
       setShowLoadingMsg(false)
       console.log(error)
