@@ -16,7 +16,6 @@ export const Mapbox = () => {
   const app = useRealmApp()
   const mapContainerRef = useRef(null)
   const [map, setMap] = useState()
-  const [caseStats, setCaseStats] = useState(null)
   const [selectedValues, setSelectedValues] = useState({ healthStatus: '' })
   const [legend, setLegend] = useState({})
   const [showLoadingMsg, setShowLoadingMsg] = useState(true)
@@ -129,8 +128,6 @@ export const Mapbox = () => {
           setShowLoadingMsg(false)
         }
       })
-
-      setCaseStats(await app.fetchStats())
     })
 
     // clean up on unmount
@@ -201,7 +198,7 @@ export const Mapbox = () => {
           healthStatSelected={selectedValues.healthStatus}
           onChange={(healthStatus) => updateLayers(healthStatus)}
         />
-        {caseStats && <MapStats data={caseStats} />}
+        <MapStats />
       </div>
       <div className="absolute top-0 right-0 flex flex-col">
         <div className="flex flex-col">

@@ -186,11 +186,17 @@ export const RealmAppProvider = ({ appId, children }) => {
         $group: {
           _id: '$caseCode',
           healthStatus: { $first: '$healthStatus' },
+          maxDate: { $max: '$dateRepConf' },
         },
       },
-      { $group: { _id: '$healthStatus', count: { $sum: 1 } } },
-      { $project: { healthStatus: '$_id', count: 1, _id: 0 } },
+      { $group: { _id: '$healthStatus', count: { $sum: 1 }, maxDate: { $max: '$maxDate' } } },
+      { $project: { healthStatus: '$_id', count: 1, maxDate: 1, _id: 0 } },
     ])
+    const maxDate = totCase
+      .map(({ maxDate }) => maxDate)
+      .reduce((a, b) => {
+        return a > b ? a : b
+      }, 0)
     let _active = totCase
       .filter((c) => activeStatEnum.includes(c.healthStatus))
       .map((o) => o.count)
@@ -201,15 +207,13 @@ export const RealmAppProvider = ({ appId, children }) => {
     }, {})
     totCase['active'] = _active
 
-    const dateRange = await getDateRange()
-
     let newCase = await casesCol.aggregate([
       {
         $match: {
           deletedAt: {
             $exists: 0,
           },
-          dateRepConf: dateRange.maxDate,
+          dateRepConf: maxDate,
         },
       },
       { $sort: { createdAt: -1 } },
@@ -223,9 +227,7 @@ export const RealmAppProvider = ({ appId, children }) => {
       { $project: { healthStatus: '$_id', count: 1, _id: 0 } },
     ])
     let _newActive = newCase
-      .filter((c) =>
-        ['asymptomatic', 'mild', 'moderate', 'severe', 'critical'].includes(c.healthStatus)
-      )
+      .filter((c) => activeStatEnum.includes(c.healthStatus))
       .map((o) => o.count)
       .reduce((a, b) => a + b, 0)
     newCase = newCase.reduce((o, { healthStatus, count }) => {
