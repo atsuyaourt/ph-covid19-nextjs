@@ -215,7 +215,7 @@ export const RealmAppProvider = ({ appId, children }) => {
     }, {})
     newCase['active'] = _newActive
 
-    return { totCase, newCase }
+    return { totCase, newCase, maxDate }
   }
 
   const wrapped = {
