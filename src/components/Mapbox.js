@@ -14,7 +14,7 @@ export const Mapbox = () => {
   const mapContainerRef = useRef(null)
   const [map, setMap] = useState(null)
   const [caseStats, setCaseStats] = useState(null)
-  const [selectedValues, setSelectedValues] = useState({ fetchDate: '', healthStatus: '' })
+  const [selectedValues, setSelectedValues] = useState({ healthStatus: '' })
   const [legendLabelArr, setLegendLabelArr] = useState([])
   const [legendColArr, setLegendColArr] = useState([])
   const [showLoadingMsg, setShowLoadingMsg] = useState(true)
@@ -42,10 +42,10 @@ export const Mapbox = () => {
     map.addControl(new mapboxgl.NavigationControl(), 'bottom-right')
 
     map.once('load', async () => {
+      // eslint-disable-next-line no-unused-vars
       dateRange = await app.getDateRange()
-      const _initValues = { ...selectedValues, fetchDate: dateRange.maxDate }
 
-      const caseCountLayer = await app.fetchData(_initValues)
+      const caseCountLayer = await app.fetchCountProv(selectedValues.healthStatus)
 
       map.addSource('ph-covid19', {
         type: 'geojson',
@@ -124,7 +124,6 @@ export const Mapbox = () => {
       })
 
       setMap(map)
-      setSelectedValues(_initValues)
       setCaseStats(await app.fetchStats())
     })
 
@@ -132,12 +131,12 @@ export const Mapbox = () => {
     return () => map.remove()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const updateLayers = async ({ fetchDate, healthStatus }) => {
+  const updateLayers = async (healthStatus) => {
     setShowLoadingMsg(true)
-    setSelectedValues({ fetchDate, healthStatus })
+    setSelectedValues({ healthStatus })
 
     try {
-      const caseCountLayer = await app.fetchData({ fetchDate, healthStatus })
+      const caseCountLayer = await app.fetchCountProv(healthStatus)
 
       map.getSource('ph-covid19').setData(caseCountLayer)
       const caseCountArr = caseCountLayer.features
@@ -198,15 +197,10 @@ export const Mapbox = () => {
     <>
       <div className="absolute top-0 bottom-0 left-0 right-0" ref={mapContainerRef} />
       <div className="absolute top-0 left-0 flex flex-col justify-between">
-        {selectedValues.fetchDate && (
-          <MapControl
-            minDate={dateRange.minDate}
-            maxDate={dateRange.maxDate}
-            dateSelected={selectedValues.fetchDate}
-            healthStatSelected={selectedValues.healthStatus}
-            onChange={(fetchDate, healthStatus) => updateLayers({ fetchDate, healthStatus })}
-          />
-        )}
+        <MapControl
+          healthStatSelected={selectedValues.healthStatus}
+          onChange={(healthStatus) => updateLayers({ healthStatus })}
+        />
         {caseStats && <MapStats data={caseStats} />}
       </div>
       <div className="absolute top-0 right-0 flex flex-col">

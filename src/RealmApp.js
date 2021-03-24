@@ -1,7 +1,6 @@
 import React, { useState, useContext } from 'react'
 import PropTypes from 'prop-types'
 import { App, Credentials } from 'realm-web'
-import { format as dateFormat } from 'date-fns'
 
 const RealmAppContext = React.createContext()
 
@@ -9,6 +8,8 @@ const EMPTY_GEOJSON = {
   type: 'FeatureCollection',
   features: [],
 }
+
+const activeStatEnum = ['asymptomatic', 'mild', 'moderate', 'severe', 'critical']
 
 export const useRealmApp = () => {
   const app = useContext(RealmAppContext)
@@ -57,19 +58,10 @@ export const RealmAppProvider = ({ appId, children }) => {
     return user
   }
 
-  const fetchData = async ({ fetchDate, healthStatus }, mode) => {
+  const fetchCountProv = async (healthStatus) => {
     const mongodb = currentUser.mongoClient('mongodb-atlas').db('default')
     const casesCol = mongodb.collection('cases')
     const geomapsCol = mongodb.collection('geomaps')
-
-    if (Object.prototype.toString.call(fetchDate) !== '[object Date]') return EMPTY_GEOJSON
-
-    let dateCond = ''
-    if (mode === 1) dateCond = new Date(`${dateFormat(fetchDate, 'yyyy-MM-dd')}T00:00:00.000+08:00`)
-    else
-      dateCond = {
-        $lte: new Date(`${dateFormat(fetchDate, 'yyyy-MM-dd')}T00:00:00.000+08:00`),
-      }
 
     let matchCond = {
       deletedAt: {
@@ -79,45 +71,20 @@ export const RealmAppProvider = ({ appId, children }) => {
       provResGeo: { $type: 'string' },
     }
 
-    switch (healthStatus) {
-      case 'recovered':
-        matchCond = {
-          ...matchCond,
-          dateRecover: dateCond,
-          healthStatus,
-        }
-        break
-      case 'died':
-        matchCond = {
-          ...matchCond,
-          dateDied: dateCond,
-          healthStatus,
-        }
-        break
-      case 'asymptomatic':
-      case 'mild':
-      case 'moderate':
-      case 'severe':
-      case 'critical':
-        matchCond = {
-          ...matchCond,
-          dateRepConf: dateCond,
-          healthStatus,
-        }
-        break
-      case 'active':
-        matchCond = {
-          ...matchCond,
-          dateRepConf: dateCond,
-          healthStatus: { $in: ['asymptomatic', 'mild', 'moderate', 'severe', 'critical'] },
-        }
-        break
-      default:
-        matchCond = {
-          ...matchCond,
-          dateRepConf: dateCond,
-        }
-        break
+    if (healthStatus === 'active') {
+      matchCond = {
+        ...matchCond,
+        healthStatus: { $in: activeStatEnum },
+      }
+    } else if (healthStatus === '') {
+      matchCond = {
+        ...matchCond,
+      }
+    } else {
+      matchCond = {
+        ...matchCond,
+        healthStatus,
+      }
     }
 
     let caseCountGeoJSON =
@@ -143,14 +110,6 @@ export const RealmAppProvider = ({ appId, children }) => {
               count: { $sum: 1 },
             },
           },
-          {
-            $project: {
-              regionResGeo: { $arrayElemAt: [{ $split: ['$_id', ','] }, 1] },
-              provResGeo: { $arrayElemAt: [{ $split: ['$_id', ','] }, 0] },
-              count: 1,
-              _id: 0,
-            },
-          },
         ])
         .catch((e) => console.log(e))) || []
 
@@ -160,7 +119,8 @@ export const RealmAppProvider = ({ appId, children }) => {
 
     if (phProvGeoJSON) {
       caseCountGeoJSON = phProvGeoJSON.features.map((f, idx) => {
-        const matchMapData = caseCountGeoJSON.filter(({ provResGeo, regionResGeo }) => {
+        const matchMapData = caseCountGeoJSON.filter(({ _id }) => {
+          const [provResGeo, regionResGeo] = _id.split(',')
           return f.properties.region === regionResGeo && f.properties.province === provResGeo
         })
 
@@ -232,9 +192,7 @@ export const RealmAppProvider = ({ appId, children }) => {
       { $project: { healthStatus: '$_id', count: 1, _id: 0 } },
     ])
     let _active = totCase
-      .filter((c) =>
-        ['asymptomatic', 'mild', 'moderate', 'severe', 'critical'].includes(c.healthStatus)
-      )
+      .filter((c) => activeStatEnum.includes(c.healthStatus))
       .map((o) => o.count)
       .reduce((a, b) => a + b, 0)
     totCase = totCase.reduce((o, { healthStatus, count }) => {
@@ -286,7 +244,7 @@ export const RealmAppProvider = ({ appId, children }) => {
     logOut,
     loginAnonymous,
     loginApiKey,
-    fetchData,
+    fetchCountProv,
     getDateRange,
     fetchStats,
   }
