@@ -1,8 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 
-import 'react-datepicker/dist/react-datepicker.css'
-
 export const MapControl = ({ healthStatSelected, onChange }) => {
   return (
     <div className="bg-white p-4 m-3 rounded-lg shadow-xl space-y-3">
