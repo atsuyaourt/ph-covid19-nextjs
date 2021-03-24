@@ -166,9 +166,13 @@ export const Mapbox = () => {
           const rest = pos - base
           if (sortedArr[base + 1] !== undefined) {
             clevVal = sortedArr[base] + rest * (sortedArr[base + 1] - sortedArr[base])
-            lyrFillClr.push()
           } else {
             clevVal = sortedArr[base]
+          }
+          if (clevVal > 10 && clevVal < 100) {
+            clevVal = Math.ceil(clevVal / 10) * 10
+          } else if (clevVal > 100) {
+            clevVal = Math.ceil(clevVal / 100) * 100
           }
           if (clevVal !== plevVal) {
             _legendLabelArr.push(clevVal)
