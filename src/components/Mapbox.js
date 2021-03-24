@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from 'react'
 import mapboxgl from 'mapbox-gl'
 
@@ -11,8 +10,6 @@ mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN
 const REDS = ['#ffffff', '#fef0d9', '#fdcc8a', '#fc8d59', '#e34a33', '#b30000']
 
 export const Mapbox = () => {
-  let dateRange = {}
-
   const app = useRealmApp()
   const mapContainerRef = useRef(null)
   const [map, setMap] = useState()
@@ -42,8 +39,6 @@ export const Mapbox = () => {
 
     map.once('load', async () => {
       setMap(map)
-      // eslint-disable-next-line no-unused-vars
-      dateRange = await app.getDateRange()
 
       const caseCountLayer = await app.fetchCountProv(selectedValues.healthStatus)
 

@@ -148,30 +148,6 @@ export const RealmAppProvider = ({ appId, children }) => {
     return EMPTY_GEOJSON
   }
 
-  const getDateRange = () => {
-    const casesCol = currentUser.mongoClient('mongodb-atlas').db('default').collection('cases')
-
-    return casesCol
-      .aggregate([
-        {
-          $match: {
-            deletedAt: {
-              $exists: 0,
-            },
-          },
-        },
-        {
-          $group: {
-            _id: null,
-            minDate: { $min: '$dateRepConf' },
-            maxDate: { $max: '$dateRepConf' },
-          },
-        },
-        { $project: { _id: 0 } },
-      ])
-      .then((d) => d[0])
-  }
-
   const fetchStats = async () => {
     const mongodb = currentUser.mongoClient('mongodb-atlas').db('default')
     const casesCol = mongodb.collection('cases')
@@ -250,7 +226,6 @@ export const RealmAppProvider = ({ appId, children }) => {
     loginAnonymous,
     loginApiKey,
     fetchCountProv,
-    getDateRange,
     fetchStats,
   }
   return <RealmAppContext.Provider value={wrapped}>{children}</RealmAppContext.Provider>
