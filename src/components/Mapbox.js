@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect } from 'react'
 import mapboxgl from 'mapbox-gl'
 
@@ -10,18 +11,17 @@ mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN
 const REDS = ['#ffffff', '#fef0d9', '#fdcc8a', '#fc8d59', '#e34a33', '#b30000']
 
 export const Mapbox = () => {
+  let dateRange = {}
+
   const app = useRealmApp()
   const mapContainerRef = useRef(null)
-  const [map, setMap] = useState(null)
+  const [map, setMap] = useState()
   const [caseStats, setCaseStats] = useState(null)
   const [selectedValues, setSelectedValues] = useState({ healthStatus: '' })
-  const [legendLabelArr, setLegendLabelArr] = useState([])
-  const [legendColArr, setLegendColArr] = useState([])
+  const [legend, setLegend] = useState({})
   const [showLoadingMsg, setShowLoadingMsg] = useState(true)
   const [hoveredFeature, _setHoveredFeature] = useState(null)
   const hoveredFeatureRef = useRef(hoveredFeature)
-
-  let dateRange = {}
 
   const setHoveredFeature = (data) => {
     hoveredFeatureRef.current = data
@@ -42,6 +42,7 @@ export const Mapbox = () => {
     map.addControl(new mapboxgl.NavigationControl(), 'bottom-right')
 
     map.once('load', async () => {
+      setMap(map)
       // eslint-disable-next-line no-unused-vars
       dateRange = await app.getDateRange()
 
@@ -52,20 +53,15 @@ export const Mapbox = () => {
         data: caseCountLayer,
       })
 
-      const caseCountArr = caseCountLayer.features
-        .map((o) => o.properties.count)
-        .filter((v) => Number.isInteger(v))
-      const layerFillColor = genLayerFillColor(caseCountArr, REDS)
-
       map.addLayer({
         id: 'ph-covid19',
         type: 'fill',
         source: 'ph-covid19',
         layout: {},
         paint: {
-          'fill-color': layerFillColor,
+          'fill-color': '#ffffff',
           'fill-outline-color': '#000000',
-          'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.9, 0.7],
+          'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 1.0, 0.7],
         },
       })
 
@@ -119,11 +115,21 @@ export const Mapbox = () => {
         setHoveredFeature(null)
       })
 
-      map.on('sourcedata', (e) => {
-        if (e.sourceId === 'ph-covid19') setShowLoadingMsg(false)
+      map.on('sourcedataloading', (e) => {
+        if (e.sourceId === 'ph-covid19') {
+          const caseCountArr = e.source.data.features
+            .map((o) => o.properties.count)
+            .filter((v) => Number.isInteger(v))
+          setLayerFillColor(e.target, caseCountArr, REDS)
+        }
       })
 
-      setMap(map)
+      map.on('sourcedata', (e) => {
+        if (e.sourceId === 'ph-covid19') {
+          setShowLoadingMsg(false)
+        }
+      })
+
       setCaseStats(await app.fetchStats())
     })
 
@@ -136,61 +142,55 @@ export const Mapbox = () => {
     setSelectedValues({ healthStatus })
 
     try {
-      const caseCountLayer = await app.fetchCountProv(healthStatus)
-
-      map.getSource('ph-covid19').setData(caseCountLayer)
-      const caseCountArr = caseCountLayer.features
-        .map((o) => o.properties.count)
-        .filter((v) => Number.isInteger(v))
-
-      const fillColArr = genLayerFillColor(caseCountArr, REDS)
-
-      caseCountArr > 0 && map.setPaintProperty('ph-covid19', 'fill-color', fillColArr)
+      map.getSource('ph-covid19').setData(await app.fetchCountProv(healthStatus))
     } catch (error) {
       setShowLoadingMsg(false)
       console.log(error)
     }
   }
 
-  const genLayerFillColor = (valArr, colArr) => {
-    const _legendLabelArr = []
-    const _legendColArr = []
-    const lyrFillClr = ['interpolate', ['linear'], ['get', 'count']]
+  const setLayerFillColor = (map, valArr, colArr) => {
+    if (valArr.length > 0) {
+      const _legendLabelArr = []
+      const _legendColArr = []
+      const lyrFillClr = ['interpolate', ['linear'], ['get', 'count']]
 
-    const sortedArr = valArr.sort((a, b) => a - b)
-    const minVal = 0
-    const maxVal = valArr.reduce((a, b) => {
-      return a > b ? a : b
-    }, 0)
+      const sortedArr = valArr.sort((a, b) => a - b)
+      const minVal = 0
+      const maxVal = valArr.reduce((a, b) => {
+        return a > b ? a : b
+      }, 0)
 
-    if (maxVal === minVal) {
-      lyrFillClr.push(minVal)
-      lyrFillClr.push(['to-color', colArr[1]])
-    } else {
-      let plevVal = ''
-      let clevVal = ''
-      colArr.forEach((c, idx) => {
-        const pos = (sortedArr.length - 1) * (idx / colArr.length)
-        const base = Math.floor(pos)
-        const rest = pos - base
-        if (sortedArr[base + 1] !== undefined) {
-          clevVal = sortedArr[base] + rest * (sortedArr[base + 1] - sortedArr[base])
-          lyrFillClr.push()
-        } else {
-          clevVal = sortedArr[base]
-        }
-        if (clevVal !== plevVal) {
-          _legendLabelArr.push(clevVal)
-          _legendColArr.push(c)
-          lyrFillClr.push(clevVal)
-          lyrFillClr.push(['to-color', c])
-          plevVal = clevVal
-        }
-      })
+      if (maxVal === minVal) {
+        lyrFillClr.push(minVal)
+        lyrFillClr.push(['to-color', colArr[1]])
+      } else {
+        let plevVal = ''
+        let clevVal = ''
+        colArr.forEach((c, idx) => {
+          const pos = (sortedArr.length - 1) * (idx / colArr.length)
+          const base = Math.floor(pos)
+          const rest = pos - base
+          if (sortedArr[base + 1] !== undefined) {
+            clevVal = sortedArr[base] + rest * (sortedArr[base + 1] - sortedArr[base])
+            lyrFillClr.push()
+          } else {
+            clevVal = sortedArr[base]
+          }
+          if (clevVal !== plevVal) {
+            _legendLabelArr.push(clevVal)
+            _legendColArr.push(c)
+            lyrFillClr.push(clevVal)
+            lyrFillClr.push(['to-color', c])
+            plevVal = clevVal
+          }
+        })
+      }
+
+      map.setPaintProperty('ph-covid19', 'fill-color', lyrFillClr)
+
+      setLegend({ label: _legendLabelArr.map((l) => String(l)), color: _legendColArr })
     }
-    setLegendLabelArr(_legendLabelArr.map((l) => String(l)))
-    setLegendColArr(_legendColArr)
-    return lyrFillClr
   }
 
   return (
@@ -199,15 +199,13 @@ export const Mapbox = () => {
       <div className="absolute top-0 left-0 flex flex-col justify-between">
         <MapControl
           healthStatSelected={selectedValues.healthStatus}
-          onChange={(healthStatus) => updateLayers({ healthStatus })}
+          onChange={(healthStatus) => updateLayers(healthStatus)}
         />
         {caseStats && <MapStats data={caseStats} />}
       </div>
       <div className="absolute top-0 right-0 flex flex-col">
         <div className="flex flex-col">
-          {!showLoadingMsg && (
-            <MapLegend title="Number of Cases" labelArr={legendLabelArr} colorArr={legendColArr} />
-          )}
+          {!showLoadingMsg && <MapLegend title="Number of Cases" legend={legend} />}
         </div>
       </div>
       {showLoadingMsg && <LoadingMsg />}
