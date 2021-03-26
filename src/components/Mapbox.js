@@ -3,7 +3,9 @@ import mapboxgl from 'mapbox-gl'
 
 import { useRealmApp } from '../RealmApp'
 
-import { MapControl, LoadingMsg, MapLegend, MapStats } from '.'
+import { HiAdjustments, HiAnnotation } from 'react-icons/hi'
+
+import { MapControl, LoadingMsg, MapLegend, MapStats, Collapsible } from '.'
 
 mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN
 
@@ -193,18 +195,25 @@ export const Mapbox = () => {
   return (
     <>
       <div className="absolute top-0 bottom-0 left-0 right-0" ref={mapContainerRef} />
-      <div className="absolute top-0 left-0 flex flex-col justify-between">
+      <Collapsible
+        className="absolute top-0 left-0 flex flex-col justify-between"
+        icon={HiAdjustments}
+      >
         <MapControl
           healthStatSelected={selectedValues.healthStatus}
           onChange={(healthStatus) => updateLayers(healthStatus)}
         />
         <MapStats />
-      </div>
-      <div className="absolute top-0 right-0 flex flex-col">
+      </Collapsible>
+      <Collapsible
+        className="absolute top-0 right-0 flex flex-col"
+        icon={HiAnnotation}
+        btnPosition="right"
+      >
         <div className="flex flex-col">
           {!showLoadingMsg && <MapLegend title="Number of Cases" legend={legend} />}
         </div>
-      </div>
+      </Collapsible>
       {showLoadingMsg && <LoadingMsg />}
     </>
   )

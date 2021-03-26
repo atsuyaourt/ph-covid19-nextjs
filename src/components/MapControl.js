@@ -3,7 +3,7 @@ import PropTypes from 'prop-types'
 
 export const MapControl = ({ healthStatSelected, onChange }) => {
   return (
-    <div className="bg-white p-4 m-3 rounded-lg shadow-xl space-y-3">
+    <div className="bg-white p-4 m-3 rounded-lg shadow-xl space-y-3 text-sm md:text-base">
       <fieldset className="flex flex-col space-y-1">
         <label htmlFor="health-status" className="font-medium">
           Health Status:
