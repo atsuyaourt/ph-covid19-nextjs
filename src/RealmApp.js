@@ -59,58 +59,10 @@ export const RealmAppProvider = ({ appId, children }) => {
 
   const fetchCountProv = async (healthStatus, prevData) => {
     const mongodb = currentUser.mongoClient('mongodb-atlas').db('default')
-    const casesCol = mongodb.collection('cases')
     const geomapsCol = mongodb.collection('geomaps')
 
-    let matchCond = {
-      deletedAt: {
-        $exists: 0,
-      },
-      regionResGeo: { $type: 'string' },
-      provResGeo: { $type: 'string' },
-    }
-
-    if (healthStatus === 'active') {
-      matchCond = {
-        ...matchCond,
-        healthStatus: { $in: activeStatEnum },
-      }
-    } else if (healthStatus === '') {
-      matchCond = {
-        ...matchCond,
-      }
-    } else {
-      matchCond = {
-        ...matchCond,
-        healthStatus,
-      }
-    }
-
     let newData =
-      (await casesCol
-        .aggregate([
-          {
-            $match: matchCond,
-          },
-          { $sort: { createdAt: -1 } },
-          {
-            $group: {
-              _id: '$caseCode',
-              grpStr: {
-                $first: {
-                  $concat: ['$provResGeo', ',', '$regionResGeo'],
-                },
-              },
-            },
-          },
-          {
-            $group: {
-              _id: '$grpStr',
-              count: { $sum: 1 },
-            },
-          },
-        ])
-        .catch((e) => console.log(e))) || []
+      (await currentUser.functions.countCasesProv(healthStatus).catch((e) => console.log(e))) || []
 
     if (prevData === undefined) {
       prevData =
