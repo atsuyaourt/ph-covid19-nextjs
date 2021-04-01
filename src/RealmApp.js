@@ -63,6 +63,7 @@ export const RealmAppProvider = ({ appId, children }) => {
 
     let newData =
       (await currentUser.functions.countCasesProv(healthStatus).catch((e) => console.log(e))) || []
+    console.log(newData)
 
     if (prevData === undefined) {
       prevData =
@@ -75,8 +76,11 @@ export const RealmAppProvider = ({ appId, children }) => {
     if (prevData) {
       newData = prevData.features.map((f, idx) => {
         const matchData = newData.filter(({ _id }) => {
-          const [provResGeo, regionResGeo] = _id.split(',')
-          return f.properties.region === regionResGeo && f.properties.province === provResGeo
+          if (_id !== null) {
+            const [provResGeo, regionResGeo] = _id.split(',')
+            return f.properties.region === regionResGeo && f.properties.province === provResGeo
+          }
+          return false
         })
 
         const { region, province } = f.properties
