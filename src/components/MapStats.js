@@ -8,7 +8,7 @@ export const MapStats = () => {
   const [stats, setStats] = useState()
 
   useEffect(async () => {
-    setStats(await app.fetchStats())
+    setStats(await app.currentUser.functions.getStats())
   }, [])
 
   return stats ? (

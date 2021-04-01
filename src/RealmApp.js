@@ -9,7 +9,7 @@ const EMPTY_GEOJSON = {
   features: [],
 }
 
-const activeStatEnum = ['asymptomatic', 'mild', 'moderate', 'severe', 'critical']
+// const activeStatEnum = ['asymptomatic', 'mild', 'moderate', 'severe', 'critical']
 
 export const useRealmApp = () => {
   const app = useContext(RealmAppContext)
@@ -58,12 +58,13 @@ export const RealmAppProvider = ({ appId, children }) => {
   }
 
   const fetchCountProv = async (healthStatus, prevData) => {
-    const mongodb = currentUser.mongoClient('mongodb-atlas').db('default')
-    const geomapsCol = mongodb.collection('geomaps')
+    const geomapsCol = currentUser
+      .mongoClient('mongodb-atlas')
+      .db('defaultDb')
+      .collection('geomaps')
 
     let newData =
       (await currentUser.functions.countCasesProv(healthStatus).catch((e) => console.log(e))) || []
-    console.log(newData)
 
     if (prevData === undefined) {
       prevData =
@@ -104,76 +105,6 @@ export const RealmAppProvider = ({ appId, children }) => {
     return EMPTY_GEOJSON
   }
 
-  const fetchStats = async () => {
-    const mongodb = currentUser.mongoClient('mongodb-atlas').db('default')
-    const casesCol = mongodb.collection('cases')
-
-    let totCase = await casesCol.aggregate([
-      {
-        $match: {
-          deletedAt: {
-            $exists: 0,
-          },
-        },
-      },
-      { $sort: { createdAt: -1 } },
-      {
-        $group: {
-          _id: '$caseCode',
-          healthStatus: { $first: '$healthStatus' },
-          maxDate: { $max: '$dateRepConf' },
-        },
-      },
-      { $group: { _id: '$healthStatus', count: { $sum: 1 }, maxDate: { $max: '$maxDate' } } },
-      { $project: { healthStatus: '$_id', count: 1, maxDate: 1, _id: 0 } },
-    ])
-    const maxDate = totCase
-      .map(({ maxDate }) => maxDate)
-      .reduce((a, b) => {
-        return a > b ? a : b
-      }, 0)
-    let _active = totCase
-      .filter((c) => activeStatEnum.includes(c.healthStatus))
-      .map((o) => o.count)
-      .reduce((a, b) => a + b, 0)
-    totCase = totCase.reduce((o, { healthStatus, count }) => {
-      o[healthStatus] = count
-      return o
-    }, {})
-    totCase['active'] = _active
-
-    let newCase = await casesCol.aggregate([
-      {
-        $match: {
-          deletedAt: {
-            $exists: 0,
-          },
-          dateRepConf: maxDate,
-        },
-      },
-      { $sort: { createdAt: -1 } },
-      {
-        $group: {
-          _id: '$caseCode',
-          healthStatus: { $first: '$healthStatus' },
-        },
-      },
-      { $group: { _id: '$healthStatus', count: { $sum: 1 } } },
-      { $project: { healthStatus: '$_id', count: 1, _id: 0 } },
-    ])
-    let _newActive = newCase
-      .filter((c) => activeStatEnum.includes(c.healthStatus))
-      .map((o) => o.count)
-      .reduce((a, b) => a + b, 0)
-    newCase = newCase.reduce((o, { healthStatus, count }) => {
-      o[healthStatus] = count
-      return o
-    }, {})
-    newCase['active'] = _newActive
-
-    return { totCase, newCase, maxDate }
-  }
-
   const wrapped = {
     ...app,
     currentUser,
@@ -182,7 +113,6 @@ export const RealmAppProvider = ({ appId, children }) => {
     loginAnonymous,
     loginApiKey,
     fetchCountProv,
-    fetchStats,
   }
   return <RealmAppContext.Provider value={wrapped}>{children}</RealmAppContext.Provider>
 }
