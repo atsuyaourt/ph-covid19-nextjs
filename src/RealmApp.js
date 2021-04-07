@@ -78,21 +78,18 @@ export const RealmAppProvider = ({ appId, children }) => {
       newData = prevData.features.map((f, idx) => {
         const matchData = newData.filter(({ _id }) => {
           if (_id !== null) {
-            const [provResGeo, regionResGeo] = _id.split(',')
-            return f.properties.region === regionResGeo && f.properties.province === provResGeo
+            return f.properties.adm2Pcode.substring(0, 6) === _id
           }
           return false
         })
 
-        const { region, province } = f.properties
-
         if (matchData.length > 0) {
           let { count } = matchData[0]
           if (!Number.isInteger(count)) count = 0
-          const newProp = { region, province, count }
+          const newProp = { ...f.properties, count }
           return { ...f, properties: newProp, id: idx }
         } else {
-          const newProp = { region, province, count: 0 }
+          const newProp = { ...f.properties, count: 0 }
           return { ...f, properties: newProp, id: idx }
         }
       })

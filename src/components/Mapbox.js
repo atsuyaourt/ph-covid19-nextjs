@@ -62,7 +62,7 @@ export const Mapbox = () => {
       })
 
       map.on('click', 'ph-covid19', (e) => {
-        const { province, count } = e.features[0].properties
+        const { adm2: province, count } = e.features[0].properties
         new mapboxgl.Popup()
           .setLngLat(e.lngLat)
           .setHTML(
