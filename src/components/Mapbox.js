@@ -15,7 +15,7 @@ export const Mapbox = () => {
   const app = useRealmApp()
   const mapContainerRef = useRef(null)
   const [map, setMap] = useState()
-  const [selectedValues, setSelectedValues] = useState({ healthStatus: '' })
+  const [selectedValues, setSelectedValues] = useState({ healthStatus: 'active' })
   const [legend, setLegend] = useState({})
   const [showLoadingMsg, setShowLoadingMsg] = useState(true)
   const [hoveredFeature, _setHoveredFeature] = useState(null)
