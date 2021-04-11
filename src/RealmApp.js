@@ -57,7 +57,7 @@ export const RealmAppProvider = ({ appId, children }) => {
     return user
   }
 
-  const fetchCountProv = async (healthStatus, prevData) => {
+  const fetchStatsProv = async (healthStatus, prevData) => {
     const geomapsCol = currentUser
       .mongoClient('mongodb-atlas')
       .db('defaultDb')
@@ -109,7 +109,7 @@ export const RealmAppProvider = ({ appId, children }) => {
     logOut,
     loginAnonymous,
     loginApiKey,
-    fetchCountProv,
+    fetchStatsProv,
   }
   return <RealmAppContext.Provider value={wrapped}>{children}</RealmAppContext.Provider>
 }

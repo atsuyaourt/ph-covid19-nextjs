@@ -42,7 +42,7 @@ export const Mapbox = () => {
     map.once('load', async () => {
       setMap(map)
 
-      const caseCountLayer = await app.fetchCountProv(selectedValues.healthStatus)
+      const caseCountLayer = await app.fetchStatsProv(selectedValues.healthStatus)
 
       map.addSource('ph-covid19', {
         type: 'geojson',
@@ -137,7 +137,7 @@ export const Mapbox = () => {
 
     try {
       const lyrSrc = map.getSource('ph-covid19')
-      lyrSrc.setData(await app.fetchCountProv(healthStatus, lyrSrc._data))
+      lyrSrc.setData(await app.fetchStatsProv(healthStatus, lyrSrc._data))
     } catch (error) {
       setShowLoadingMsg(false)
       console.log(error)
