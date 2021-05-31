@@ -13,6 +13,7 @@ export const MapControl = ({ healthStatSelected, onChange }) => {
           value={healthStatSelected}
           className="ring-2 ring-teal-600 p-1 rounded rounded-md"
           onChange={(e) => onChange(e.target.value)}
+          onBlur={(e) => onChange(e.target.value)}
         >
           <option value="">All</option>
           <option value="active">Active</option>

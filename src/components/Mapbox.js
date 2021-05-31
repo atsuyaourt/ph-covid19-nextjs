@@ -129,7 +129,7 @@ export const Mapbox = () => {
 
     // clean up on unmount
     return () => map.remove()
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])
 
   const updateLayers = async (healthStatus) => {
     setShowLoadingMsg(true)
