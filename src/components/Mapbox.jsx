@@ -7,11 +7,9 @@ import { HiAdjustments, HiAnnotation } from "react-icons/hi";
 
 import { MapControl, LoadingMsg, MapLegend, MapStats, Collapsible } from ".";
 
-mapboxgl.accessToken = process.env.REACT_APP_MAPBOX_ACCESS_TOKEN;
-
 const REDS = ["#ffffff", "#fef0d9", "#fdcc8a", "#fc8d59", "#e34a33", "#b30000"];
 
-export const Mapbox = () => {
+export const Mapbox = ({ accessToken }) => {
   const app = useRealmApp();
   const mapContainerRef = useRef(null);
   const [map, setMap] = useState();
@@ -22,6 +20,8 @@ export const Mapbox = () => {
   const [showLoadingMsg, setShowLoadingMsg] = useState(true);
   const [hoveredFeature, _setHoveredFeature] = useState(null);
   const hoveredFeatureRef = useRef(hoveredFeature);
+
+  mapboxgl.accessToken = accessToken;
 
   const setHoveredFeature = (data) => {
     hoveredFeatureRef.current = data;
@@ -44,9 +44,9 @@ export const Mapbox = () => {
     map.once("load", async () => {
       setMap(map);
 
-      const caseCountLayer = await app.fetchStatsProv(
+      const caseCountLayer = app.currentUser ? await app.fetchStatsProv(
         selectedValues.healthStatus
-      );
+      ) : [];
 
       map.addSource("ph-covid19", {
         type: "geojson",

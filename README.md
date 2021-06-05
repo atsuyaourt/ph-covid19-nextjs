@@ -1,6 +1,6 @@
-# DOH COVID-19 PH React App
+# DOH COVID-19 PH App
 
-Sample react app to visualize DOH COVID-19 Case information.
+NextJS app to visualize DOH COVID-19 Case information.
 
 live: [http://covid19ph.awesomedata.xyz](http://covid19ph.awesomedata.xyz)
 
@@ -12,6 +12,7 @@ live: [http://covid19ph.awesomedata.xyz](http://covid19ph.awesomedata.xyz)
 
 ## Dependencies
 
+- next
 - react
 - mapbox-gl
 - realm-web

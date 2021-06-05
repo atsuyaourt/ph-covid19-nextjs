@@ -8,7 +8,12 @@ export const MapStats = () => {
   const [stats, setStats] = useState()
 
   useEffect(async () => {
-    setStats(await app.currentUser.functions.getStats())
+    try {
+      setStats(app.currentUser ? await app.currentUser.functions.getStats() : []);
+    } catch (error) {
+      console.log(error);
+    }
+    
   }, [])
 
   return stats ? (
