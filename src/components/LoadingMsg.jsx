@@ -1,5 +1,4 @@
-import React from 'react'
-import PropTypes from 'prop-types'
+import React from "react";
 
 export const LoadingMsg = ({ message }) => {
   return (
@@ -28,13 +27,5 @@ export const LoadingMsg = ({ message }) => {
         {message}
       </div>
     </div>
-  )
-}
-
-LoadingMsg.propTypes = {
-  message: PropTypes.string,
-}
-
-LoadingMsg.defaultProps = {
-  message: 'Loading...',
-}
+  );
+};

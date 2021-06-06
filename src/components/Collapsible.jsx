@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
-import PropTypes from "prop-types";
 import { useWindowSize } from "../hooks";
 
 export const Collapsible = ({
   className,
   children,
   icon: Icon,
-  btnPosition
+  btnPosition,
 }) => {
   const [showContent, setShowContent] = useState(true);
   const [showButton, setShowButton] = useState(false);
@@ -37,15 +36,4 @@ export const Collapsible = ({
       )}
     </div>
   );
-};
-
-Collapsible.propTypes = {
-  children: PropTypes.node.isRequired,
-  className: PropTypes.string,
-  icon: PropTypes.elementType,
-  btnPosition: PropTypes.oneOf(["left", "right"])
-};
-
-Collapsible.defaultProps = {
-  btnPosition: "left"
 };

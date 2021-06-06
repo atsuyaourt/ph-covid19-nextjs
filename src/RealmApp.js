@@ -1,5 +1,4 @@
 import React, { useState, useContext, useEffect } from "react";
-import PropTypes from "prop-types";
 import { App, Credentials } from "realm-web";
 
 const RealmAppContext = React.createContext();
@@ -125,9 +124,4 @@ export const RealmAppProvider = ({ appId, apiKey, children }) => {
       {children}
     </RealmAppContext.Provider>
   );
-};
-
-RealmAppProvider.propTypes = {
-  appId: PropTypes.string.isRequired,
-  children: PropTypes.node.isRequired
 };

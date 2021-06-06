@@ -1,11 +1,10 @@
-import React from 'react'
-import PropTypes from 'prop-types'
+import React from "react";
 
 export const MapLegend = ({ title, legend }) => {
   return (
     <div className="bg-white p-3 m-3 rounded-lg shadow-2xl flex flex-col items-center justify-center">
       <span className="text-md md:text-lg font-semibold">{title}</span>
-      {'label' in legend && (
+      {"label" in legend && (
         <div className="flex flex-col">
           <div className="flex border">
             {legend.color.map((clr, idx) => (
@@ -26,17 +25,5 @@ export const MapLegend = ({ title, legend }) => {
         </div>
       )}
     </div>
-  )
-}
-
-MapLegend.propTypes = {
-  legend: PropTypes.shape({
-    label: PropTypes.arrayOf(PropTypes.string),
-    color: PropTypes.arrayOf(PropTypes.string),
-  }),
-  title: PropTypes.string,
-}
-
-MapLegend.defaultProps = {
-  title: 'Legend',
-}
+  );
+};
