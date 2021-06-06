@@ -26,15 +26,21 @@ export const RealmAppProvider = ({ appId, apiKey, children }) => {
   const [currentUser, setCurrentUser] = useState(app.currentUser);
 
   useEffect(async () => {
+    logIn();
+
+    return () => logOut();
+  }, [currentUser]);
+
+  const logIn = async () => {
     const credentials = Credentials.apiKey(apiKey);
     const user = await app.logIn(credentials);
     setCurrentUser(user);
+  };
 
-    return async () => {
-      const user = await currentUser.logOut();
-      setCurrentUser(user);
-    };
-  }, [currentUser]);
+  const logOut = async () => {
+    const user = await currentUser.logOut();
+    setCurrentUser(user);
+  };
 
   const fetchStatsProv = async (healthStatus, prevData) => {
     const geomapsCol = currentUser
@@ -42,17 +48,27 @@ export const RealmAppProvider = ({ appId, apiKey, children }) => {
       .db("defaultDb")
       .collection("geomaps");
 
-    let newData =
-      (await currentUser.functions
-        .countCasesProv(healthStatus)
-        .catch((e) => console.log(e))) || [];
+    let newData = [];
+    try {
+      newData = await currentUser.functions.countCasesProv(healthStatus);
+    } catch (err) {
+      if (!currentUser.isLoggedIn) {
+        await logIn();
+        newData = await currentUser.functions.countCasesProv(healthStatus);
+      } else {
+        console.error(err);
+      }
+    }
 
     if (prevData === undefined) {
-      prevData =
-        (await geomapsCol
+      try {
+        prevData = await geomapsCol
           .findOne({ name: "ph-prov" })
-          .then((d) => d.geo)
-          .catch((e) => console.log(e))) || [];
+          .then((d) => d.geo);
+      } catch (err) {
+        prevData = { features: [] };
+        console.error(err);
+      }
     }
 
     if (prevData) {
@@ -83,9 +99,25 @@ export const RealmAppProvider = ({ appId, apiKey, children }) => {
     return EMPTY_GEOJSON;
   };
 
+  const getStats = async () => {
+    let stats;
+    try {
+      stats = await currentUser.functions.getStats();
+    } catch (err) {
+      if (!currentUser.isLoggedIn) {
+        stats = await currentUser.functions.getStats();
+      } else {
+        console.error(err);
+      }
+    }
+
+    return stats;
+  };
+
   const wrapped = {
     ...app,
     currentUser,
+    getStats,
     fetchStatsProv
   };
   return (

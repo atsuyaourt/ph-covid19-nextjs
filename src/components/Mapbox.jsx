@@ -14,7 +14,7 @@ export const Mapbox = ({ accessToken }) => {
   const mapContainerRef = useRef(null);
   const [map, setMap] = useState();
   const [selectedValues, setSelectedValues] = useState({
-    healthStatus: "active"
+    healthStatus: "active",
   });
   const [legend, setLegend] = useState({});
   const [showLoadingMsg, setShowLoadingMsg] = useState(true);
@@ -35,7 +35,7 @@ export const Mapbox = ({ accessToken }) => {
       // See style options here: https://docs.mapbox.com/api/maps/#styles
       style: "mapbox://styles/mapbox/streets-v11",
       center: [121.774, 12.8797],
-      zoom: 5
+      zoom: 5,
     });
 
     // add navigation control (the +/- zoom buttons)
@@ -44,13 +44,13 @@ export const Mapbox = ({ accessToken }) => {
     map.once("load", async () => {
       setMap(map);
 
-      const caseCountLayer = app.currentUser ? await app.fetchStatsProv(
+      const caseCountLayer = await app.fetchStatsProv(
         selectedValues.healthStatus
-      ) : [];
+      );
 
       map.addSource("ph-covid19", {
         type: "geojson",
-        data: caseCountLayer
+        data: caseCountLayer,
       });
 
       map.addLayer({
@@ -65,9 +65,9 @@ export const Mapbox = ({ accessToken }) => {
             "case",
             ["boolean", ["feature-state", "hover"], false],
             1.0,
-            0.7
-          ]
-        }
+            0.7,
+          ],
+        },
       });
 
       map.on("click", "ph-covid19", (e) => {
@@ -205,7 +205,7 @@ export const Mapbox = ({ accessToken }) => {
 
       setLegend({
         label: _legendLabelArr.map((l) => String(l)),
-        color: _legendColArr
+        color: _legendColArr,
       });
     }
   };
