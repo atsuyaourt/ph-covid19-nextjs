@@ -24,6 +24,8 @@ export const RealmAppProvider = ({ appId, apiKey, children }) => {
   const app = new App(appId);
   const [currentUser, setCurrentUser] = useState(app.currentUser);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [provCount, setProvCount] = useState({});
+  const [stats, setStats] = useState();
 
   useEffect(() => {
     logIn();
@@ -55,53 +57,63 @@ export const RealmAppProvider = ({ appId, apiKey, children }) => {
   };
 
   const fetchStatsProv = async (healthStatus, prevData) => {
-    if (!isLoggedIn) await logIn();
+    let newData =
+      healthStatus !== "" ? provCount[healthStatus] : provCount["all"];
 
-    const geomapsCol = currentUser
-      .mongoClient("mongodb-atlas")
-      .db("defaultDb")
-      .collection("geomaps");
+    if (!newData) {
+      if (!isLoggedIn) await logIn();
 
-    let newData = [];
-    try {
-      newData = await currentUser.functions.countCasesProv(healthStatus);
-    } catch (err) {
-      console.error(err);
-    }
+      const geomapsCol = currentUser
+        .mongoClient("mongodb-atlas")
+        .db("defaultDb")
+        .collection("geomaps");
 
-    if (prevData === undefined) {
       try {
-        prevData = await geomapsCol
-          .findOne({ name: "ph-prov" })
-          .then((d) => d.geo);
+        newData = await currentUser.functions.countCasesProv(healthStatus);
       } catch (err) {
-        prevData = { features: [] };
         console.error(err);
       }
-    }
 
-    if (prevData) {
-      newData = prevData.features.map((f, idx) => {
-        const matchData = newData.filter(({ _id }) => {
-          if (_id !== null) {
-            return f.properties.adm2Pcode.substring(0, 6) === _id;
+      if (prevData === undefined) {
+        try {
+          prevData = await geomapsCol
+            .findOne({ name: "ph-prov" })
+            .then((d) => d.geo);
+        } catch (err) {
+          prevData = { features: [] };
+          console.error(err);
+        }
+      }
+
+      if (prevData) {
+        newData = prevData.features.map((f, idx) => {
+          const matchData = newData.filter(({ _id }) => {
+            if (_id !== null) {
+              return f.properties.adm2Pcode.substring(0, 6) === _id;
+            }
+            return false;
+          });
+
+          if (matchData.length > 0) {
+            let { count } = matchData[0];
+            if (!Number.isInteger(count)) count = 0;
+            const newProp = { ...f.properties, count };
+            return { ...f, properties: newProp, id: idx };
+          } else {
+            const newProp = { ...f.properties, count: 0 };
+            return { ...f, properties: newProp, id: idx };
           }
-          return false;
         });
 
-        if (matchData.length > 0) {
-          let { count } = matchData[0];
-          if (!Number.isInteger(count)) count = 0;
-          const newProp = { ...f.properties, count };
-          return { ...f, properties: newProp, id: idx };
-        } else {
-          const newProp = { ...f.properties, count: 0 };
-          return { ...f, properties: newProp, id: idx };
-        }
-      });
+        newData = { ...prevData, features: newData };
 
-      newData = { ...prevData, features: newData };
+        healthStatus !== ""
+          ? setProvCount({ ...provCount, [healthStatus]: newData })
+          : setProvCount({ ...provCount, all: newData });
 
+        return newData;
+      }
+    } else {
       return newData;
     }
 
@@ -109,16 +121,17 @@ export const RealmAppProvider = ({ appId, apiKey, children }) => {
   };
 
   const getStats = async () => {
-    let stats = [];
-
-    if (!isLoggedIn) await logIn();
-    try {
-      stats = await currentUser.functions.getStats();
-    } catch (err) {
-      console.error(err);
+    let _stats = stats;
+    if (!_stats) {
+      if (!isLoggedIn) await logIn();
+      try {
+        _stats = await currentUser.functions.getStats();
+        setStats(_stats);
+      } catch (err) {
+        console.error(err);
+      }
     }
-
-    return stats;
+    return _stats;
   };
 
   const wrapped = {
