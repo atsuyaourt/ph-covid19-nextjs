@@ -1,5 +1,3 @@
-import React from "react";
-
 export const MapControl = ({ healthStatSelected, onChange }) => {
   return (
     <div className="bg-white p-4 m-3 rounded-lg shadow-xl space-y-3 text-sm md:text-base">

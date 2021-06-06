@@ -1,5 +1,3 @@
-import React from "react";
-
 export const MapLegend = ({ title, legend }) => {
   return (
     <div className="bg-white p-3 m-3 rounded-lg shadow-2xl flex flex-col items-center justify-center">

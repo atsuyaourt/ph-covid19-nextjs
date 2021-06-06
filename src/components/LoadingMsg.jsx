@@ -1,5 +1,3 @@
-import React from "react";
-
 export const LoadingMsg = ({ message }) => {
   return (
     <div className="fixed h-full w-full flex items-center justify-center bg-opacity-50 bg-gray-700">
