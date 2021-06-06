@@ -23,9 +23,7 @@ export const Collapsible = ({
 
   return (
     <div className={className}>
-      <div className={`${showContent ? "visible" : "invisible h-0 w-0"}`}>
-        {children}
-      </div>
+      {showContent && children}
       {showButton && (
         <button
           className={`absolute top-0 ${btnPosition}-0 m-3 bg-white text-black p-0.5 rounded-sm shadow`}
