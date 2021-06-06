@@ -23,25 +23,40 @@ export const useRealmApp = () => {
 export const RealmAppProvider = ({ appId, apiKey, children }) => {
   const app = new App(appId);
   const [currentUser, setCurrentUser] = useState(app.currentUser);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-  useEffect(async () => {
+  useEffect(() => {
     logIn();
-
     return () => logOut();
-  }, [currentUser]);
+  }, []);
 
   const logIn = async () => {
+    let user = {};
     const credentials = Credentials.apiKey(apiKey);
-    const user = await app.logIn(credentials);
+    try {
+      user = await app.logIn(credentials);
+      setIsLoggedIn(true);
+    } catch (err) {
+      setIsLoggedIn(false);
+      console.error(err);
+    }
     setCurrentUser(user);
+    return user;
   };
 
   const logOut = async () => {
-    const user = await currentUser.logOut();
+    let user = {};
+    try {
+      user = await currentUser.logOut();
+    } catch (err) {
+      console.error(err);
+    }
     setCurrentUser(user);
   };
 
   const fetchStatsProv = async (healthStatus, prevData) => {
+    if (!isLoggedIn) await logIn();
+
     const geomapsCol = currentUser
       .mongoClient("mongodb-atlas")
       .db("defaultDb")
@@ -51,12 +66,7 @@ export const RealmAppProvider = ({ appId, apiKey, children }) => {
     try {
       newData = await currentUser.functions.countCasesProv(healthStatus);
     } catch (err) {
-      if (!currentUser.isLoggedIn) {
-        await logIn();
-        newData = await currentUser.functions.countCasesProv(healthStatus);
-      } else {
-        console.error(err);
-      }
+      console.error(err);
     }
 
     if (prevData === undefined) {
@@ -99,15 +109,13 @@ export const RealmAppProvider = ({ appId, apiKey, children }) => {
   };
 
   const getStats = async () => {
-    let stats;
+    let stats = [];
+
+    if (!isLoggedIn) await logIn();
     try {
       stats = await currentUser.functions.getStats();
     } catch (err) {
-      if (!currentUser.isLoggedIn) {
-        stats = await currentUser.functions.getStats();
-      } else {
-        console.error(err);
-      }
+      console.error(err);
     }
 
     return stats;
@@ -115,13 +123,12 @@ export const RealmAppProvider = ({ appId, apiKey, children }) => {
 
   const wrapped = {
     ...app,
-    currentUser,
     getStats,
     fetchStatsProv
   };
   return (
     <RealmAppContext.Provider value={wrapped}>
-      {children}
+      {isLoggedIn && children}
     </RealmAppContext.Provider>
   );
 };
