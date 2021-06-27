@@ -14,11 +14,15 @@ const HEALTH_STATUS_ENUM = [
 ];
 
 async function login() {
-  const credentials = Realm.Credentials.serverApiKey(process.env.REALM_API_KEY);
-
   try {
-    const currentUser = await app.logIn(credentials);
-    console.log("Successfully logged in!", currentUser.id);
+    if (!app.currentUser && app.currentUser.state !== "LoggedIn") {
+      const credentials = Realm.Credentials.serverApiKey(
+        process.env.REALM_API_KEY
+      );
+      await app.logIn(credentials);
+    }
+
+    console.log("Successfully logged in!", app.currentUser.id);
   } catch (err) {
     console.error("Failed to log in", err.message);
   }
@@ -34,7 +38,7 @@ async function logout() {
 
 const getCountSummary = async () => {
   try {
-    if (app.currentUser.state !== "LoggedIn") await login();
+    await login();
 
     return JSON.stringify(await app.currentUser.functions.getStats());
   } catch (err) {
@@ -46,7 +50,7 @@ const getCountSummary = async () => {
 
 const getCountCasesProv = async () => {
   try {
-    if (app.currentUser.state !== "LoggedIn") await login();
+    await login();
 
     let data = await Promise.all(
       HEALTH_STATUS_ENUM.map((healthStatus) => {
@@ -77,7 +81,7 @@ const getCountCasesProv = async () => {
 
 const getBasemap = async () => {
   try {
-    if (app.currentUser.state !== "LoggedIn") await login();
+    await login();
 
     const data = await app.currentUser
       .mongoClient("mongodb-atlas")
