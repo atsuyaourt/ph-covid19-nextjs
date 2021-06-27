@@ -1,14 +1,11 @@
-import React, { useState, useContext, useEffect } from "react";
-import { App, Credentials } from "realm-web";
+import React, { useState, useContext, createContext } from "react";
 
-const RealmAppContext = React.createContext();
+const RealmAppContext = createContext();
 
 const EMPTY_GEOJSON = {
   type: "FeatureCollection",
   features: []
 };
-
-// const activeStatEnum = ['asymptomatic', 'mild', 'moderate', 'severe', 'critical']
 
 export const useRealmApp = () => {
   const app = useContext(RealmAppContext);
@@ -20,65 +17,26 @@ export const useRealmApp = () => {
   return app;
 };
 
-export const RealmAppProvider = ({ appId, apiKey, children }) => {
-  const app = new App(appId);
-  const [currentUser, setCurrentUser] = useState(app.currentUser);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+export const RealmAppProvider = ({ children, data }) => {
   const [provCount, setProvCount] = useState({});
-  const [stats, setStats] = useState();
-
-  useEffect(() => {
-    logIn();
-    return () => logOut();
-  }, []);
-
-  const logIn = async () => {
-    let user = {};
-    const credentials = Credentials.apiKey(apiKey);
-    try {
-      user = await app.logIn(credentials);
-      setIsLoggedIn(true);
-    } catch (err) {
-      setIsLoggedIn(false);
-      console.error(err);
-    }
-    setCurrentUser(user);
-    return user;
-  };
-
-  const logOut = async () => {
-    let user = {};
-    try {
-      user = await currentUser.logOut();
-    } catch (err) {
-      console.error(err);
-    }
-    setCurrentUser(user);
-  };
 
   const fetchStatsProv = async (healthStatus, prevData) => {
     let newData =
       healthStatus !== "" ? provCount[healthStatus] : provCount["all"];
 
     if (!newData) {
-      if (!isLoggedIn) await logIn();
-
-      const geomapsCol = currentUser
-        .mongoClient("mongodb-atlas")
-        .db("defaultDb")
-        .collection("geomaps");
-
       try {
-        newData = await currentUser.functions.countCasesProv(healthStatus);
+        newData =
+          healthStatus !== ""
+            ? data.countCasesProv[healthStatus]
+            : data.countCasesProv["all"];
       } catch (err) {
         console.error(err);
       }
 
       if (prevData === undefined) {
         try {
-          prevData = await geomapsCol
-            .findOne({ name: "ph-prov" })
-            .then((d) => d.geo);
+          prevData = data.basemap;
         } catch (err) {
           prevData = { features: [] };
           console.error(err);
@@ -120,28 +78,13 @@ export const RealmAppProvider = ({ appId, apiKey, children }) => {
     return EMPTY_GEOJSON;
   };
 
-  const getStats = async () => {
-    let _stats = stats;
-    if (!_stats) {
-      if (!isLoggedIn) await logIn();
-      try {
-        _stats = await currentUser.functions.getStats();
-        setStats(_stats);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    return _stats;
-  };
-
   const wrapped = {
-    ...app,
-    getStats,
+    ...data,
     fetchStatsProv
   };
   return (
     <RealmAppContext.Provider value={wrapped}>
-      {isLoggedIn && children}
+      {children}
     </RealmAppContext.Provider>
   );
 };

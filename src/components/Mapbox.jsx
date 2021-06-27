@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import mapboxgl from "mapbox-gl";
 
-import { useRealmApp } from "../RealmApp";
+import { useRealmApp } from "../contexts/RealmApp";
 
 import { HiAdjustments, HiAnnotation } from "react-icons/hi";
 

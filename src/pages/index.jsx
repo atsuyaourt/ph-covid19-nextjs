@@ -1,22 +1,26 @@
-import { RealmAppProvider } from "../RealmApp";
+import { RealmAppProvider } from "../contexts/RealmApp";
 import { Mapbox } from "../components";
+import { getCountSummary, getCountCasesProv, getBasemap } from "../util/realm";
 
-function Page({ realmAppId, realmApiKey, mapboxAccessToken }) {
+function Page({ mapboxAccessToken, data }) {
   return (
-    <RealmAppProvider appId={realmAppId} apiKey={realmApiKey}>
+    <RealmAppProvider data={data}>
       <Mapbox accessToken={mapboxAccessToken} />
     </RealmAppProvider>
   );
 }
 
-export function getStaticProps() {
+export const getStaticProps = async () => {
+  const countSummary = JSON.parse(await getCountSummary());
+  const countCasesProv = JSON.parse(await getCountCasesProv());
+  const basemap = JSON.parse(await getBasemap());
+
   return {
     props: {
-      realmAppId: process.env.REALM_APP_ID,
-      realmApiKey: process.env.REALM_API_KEY,
       mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN,
+      data: { countSummary, countCasesProv, basemap },
     },
   };
-}
+};
 
 export default Page;

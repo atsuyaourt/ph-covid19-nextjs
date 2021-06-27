@@ -1,20 +1,16 @@
-import { useState, useEffect } from "react";
-import { format } from "date-fns";
+// import { useState, useEffect } from "react";
+import { format, parseJSON } from "date-fns";
 
-import { useRealmApp } from "../RealmApp";
+import { useRealmApp } from "../contexts/RealmApp";
 
 export const MapStats = () => {
   const app = useRealmApp();
-  const [stats, setStats] = useState();
-
-  useEffect(async () => {
-    setStats(await app.getStats());
-  }, []);
+  const stats = app.countSummary;
 
   return stats ? (
     <div className="bg-white p-4 m-3 rounded-lg shadow-2xl flex flex-col space-y-3 md:space-y-5 md:w-52">
       <div className="text-xs md:text-sm font-light italic text-gray-700">
-        {`as of ${format(stats.maxDate, "MMM d, Y")}`}
+        {`as of ${format(parseJSON(stats.maxDate), "MMM d, Y")}`}
       </div>
       <div className="flex flex-col items-end space-y-1 md:space-y-3">
         <div className="flex flex-col items-end">
