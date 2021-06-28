@@ -15,7 +15,7 @@ const HEALTH_STATUS_ENUM = [
 
 async function login() {
   try {
-    if (!app.currentUser && app.currentUser.state !== "LoggedIn") {
+    if (!app.currentUser) {
       const credentials = Realm.Credentials.serverApiKey(
         process.env.REALM_API_KEY
       );
