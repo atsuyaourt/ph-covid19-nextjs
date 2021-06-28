@@ -20,7 +20,8 @@ export const getStaticProps = async () => {
       props: {
         mapboxAccessToken: process.env.MAPBOX_ACCESS_TOKEN,
         data: { countSummary, countCasesProv, basemap }
-      }
+      },
+      revalidate: 10800
     };
   } catch (err) {
     return {
