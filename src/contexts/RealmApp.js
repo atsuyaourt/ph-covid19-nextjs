@@ -26,10 +26,7 @@ export const RealmAppProvider = ({ children, data }) => {
 
     if (!newData) {
       try {
-        newData =
-          healthStatus !== ""
-            ? data.countCasesProv[healthStatus]
-            : data.countCasesProv["all"];
+        newData = data.countCasesProv;
       } catch (err) {
         console.error(err);
       }
@@ -82,6 +79,7 @@ export const RealmAppProvider = ({ children, data }) => {
     ...data,
     fetchStatsProv
   };
+
   return (
     <RealmAppContext.Provider value={wrapped}>
       {children}

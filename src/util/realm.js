@@ -2,6 +2,9 @@ const Realm = require("realm");
 
 const app = new Realm.App({ id: process.env.REALM_APP_ID });
 
+let basemap;
+let countSummary;
+
 const HEALTH_STATUS_ENUM = [
   "all",
   "active",
@@ -38,40 +41,26 @@ async function logout() {
 
 const getCountSummary = async () => {
   try {
-    await login();
-
-    return JSON.stringify(await app.currentUser.functions.getStats());
+    if (!countSummary) {
+      await login();
+      countSummary = await app.currentUser.functions.getStats();
+    } else {
+      console.log("count summary fetched already");
+    }
   } catch (err) {
     console.error("Failed to get data", err.message);
   }
 
-  return [];
+  return JSON.stringify(countSummary);
 };
 
-const getCountCasesProv = async () => {
+const getCountCasesProv = async (healthStatus) => {
   try {
     await login();
 
-    let data = await Promise.all(
-      HEALTH_STATUS_ENUM.map((healthStatus) => {
-        let _hs = healthStatus;
-        if (healthStatus === "all") _hs = "";
-        return app.currentUser.functions.countCasesProv(_hs);
-      })
-    );
+    if (healthStatus === "all") healthStatus = "";
 
-    data = data
-      .map((d, i) => ({
-        healthStatus: HEALTH_STATUS_ENUM[i],
-        data: d
-      }))
-      .reduce(
-        (obj, { healthStatus, data }) => ({
-          ...obj,
-          [healthStatus]: data
-        }),
-        {}
-      );
+    let data = await app.currentUser.functions.countCasesProv(healthStatus);
 
     return JSON.stringify(data);
   } catch (err) {
@@ -81,24 +70,27 @@ const getCountCasesProv = async () => {
 
 const getBasemap = async () => {
   try {
-    await login();
+    if (!basemap) {
+      await login();
 
-    const data = await app.currentUser
-      .mongoClient("mongodb-atlas")
-      .db("defaultDb")
-      .collection("geomaps")
-      .findOne({ name: "ph-prov" })
-      .then((d) => d.geo);
-
-    return JSON.stringify(data);
+      basemap = await app.currentUser
+        .mongoClient("mongodb-atlas")
+        .db("defaultDb")
+        .collection("geomaps")
+        .findOne({ name: "ph-prov" })
+        .then((d) => d.geo);
+    }
   } catch (err) {
     console.error("Failed to get data", err.message);
   }
+
+  return JSON.stringify(basemap);
 };
 
 module.exports = {
   login,
   logout,
+  healthStatusEnum: HEALTH_STATUS_ENUM,
   getCountCasesProv,
   getCountSummary,
   getBasemap

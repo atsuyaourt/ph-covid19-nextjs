@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/router";
 import mapboxgl from "mapbox-gl";
 
 import { useRealmApp } from "../contexts/RealmApp";
@@ -11,17 +12,19 @@ const REDS = ["#ffffff", "#fef0d9", "#fdcc8a", "#fc8d59", "#e34a33", "#b30000"];
 
 export const Mapbox = ({ accessToken }) => {
   const app = useRealmApp();
+  const router = useRouter();
   const mapContainerRef = useRef(null);
   const [map, setMap] = useState();
-  const [selectedValues, setSelectedValues] = useState({
-    healthStatus: "active",
-  });
   const [legend, setLegend] = useState({});
   const [showLoadingMsg, setShowLoadingMsg] = useState(true);
   const [hoveredFeature, _setHoveredFeature] = useState(null);
   const hoveredFeatureRef = useRef(hoveredFeature);
 
   mapboxgl.accessToken = accessToken;
+
+  const {
+    query: { healthStatus }
+  } = router;
 
   const setHoveredFeature = (data) => {
     hoveredFeatureRef.current = data;
@@ -35,7 +38,7 @@ export const Mapbox = ({ accessToken }) => {
       // See style options here: https://docs.mapbox.com/api/maps/#styles
       style: "mapbox://styles/mapbox/streets-v11",
       center: [121.774, 12.8797],
-      zoom: 5,
+      zoom: 5
     });
 
     // add navigation control (the +/- zoom buttons)
@@ -44,13 +47,11 @@ export const Mapbox = ({ accessToken }) => {
     map.once("load", async () => {
       setMap(map);
 
-      const caseCountLayer = await app.fetchStatsProv(
-        selectedValues.healthStatus
-      );
+      const caseCountLayer = await app.fetchStatsProv(healthStatus);
 
       map.addSource("ph-covid19", {
         type: "geojson",
-        data: caseCountLayer,
+        data: caseCountLayer
       });
 
       map.addLayer({
@@ -65,9 +66,9 @@ export const Mapbox = ({ accessToken }) => {
             "case",
             ["boolean", ["feature-state", "hover"], false],
             1.0,
-            0.7,
-          ],
-        },
+            0.7
+          ]
+        }
       });
 
       map.on("click", "ph-covid19", (e) => {
@@ -145,9 +146,12 @@ export const Mapbox = ({ accessToken }) => {
     return () => map.remove();
   }, []);
 
+  useEffect(() => {
+    updateLayers(healthStatus);
+  }, [healthStatus]);
+
   const updateLayers = async (healthStatus) => {
     setShowLoadingMsg(true);
-    setSelectedValues({ healthStatus });
 
     try {
       const lyrSrc = map.getSource("ph-covid19");
@@ -205,7 +209,7 @@ export const Mapbox = ({ accessToken }) => {
 
       setLegend({
         label: _legendLabelArr.map((l) => String(l)),
-        color: _legendColArr,
+        color: _legendColArr
       });
     }
   };
@@ -217,10 +221,7 @@ export const Mapbox = ({ accessToken }) => {
         className="absolute top-0 left-0 flex flex-col justify-between"
         icon={HiAdjustments}
       >
-        <MapControl
-          healthStatSelected={selectedValues.healthStatus}
-          onChange={(healthStatus) => updateLayers(healthStatus)}
-        />
+        <MapControl onChange={(healthStatus) => updateLayers(healthStatus)} />
         <MapStats />
       </Collapsible>
       <Collapsible

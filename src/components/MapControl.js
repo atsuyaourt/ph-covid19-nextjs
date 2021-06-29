@@ -1,4 +1,15 @@
-export const MapControl = ({ healthStatSelected, onChange }) => {
+import { useState } from "react";
+import { useRouter } from "next/router";
+
+export const MapControl = () => {
+  const router = useRouter();
+  const [healthStatus, setHealthStatus] = useState(router.query.healthStatus);
+
+  const handleChange = (ev) => {
+    setHealthStatus(ev.target.value);
+    router.push(`/${ev.target.value}`);
+  };
+
   return (
     <div className="bg-white p-4 m-3 rounded-lg shadow-xl space-y-3 text-sm md:text-base">
       <fieldset className="flex flex-col space-y-1">
@@ -7,12 +18,12 @@ export const MapControl = ({ healthStatSelected, onChange }) => {
         </label>
         <select
           name="health-status"
-          value={healthStatSelected}
+          value={healthStatus}
           className="ring-2 ring-teal-600 p-1 rounded rounded-md"
-          onChange={(e) => onChange(e.target.value)}
-          onBlur={(e) => onChange(e.target.value)}
+          onChange={(e) => handleChange(e)}
+          onBlur={(e) => handleChange(e)}
         >
-          <option value="">All</option>
+          <option value="all">All</option>
           <option value="active">Active</option>
           <option value="recovered">Recovered</option>
           <option value="asymptomatic">Asymptomatic</option>

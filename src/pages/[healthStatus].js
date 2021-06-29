@@ -1,8 +1,13 @@
 import { RealmAppProvider } from "../contexts/RealmApp";
 import { Mapbox } from "../components";
-import { getCountSummary, getCountCasesProv, getBasemap } from "../util/realm";
+import {
+  healthStatusEnum,
+  getBasemap,
+  getCountSummary,
+  getCountCasesProv
+} from "../util/realm";
 
-function IndexPage({ mapboxAccessToken, data }) {
+function HealthStatusPage({ mapboxAccessToken, data }) {
   return (
     <RealmAppProvider data={data}>
       <Mapbox accessToken={mapboxAccessToken} />
@@ -10,10 +15,20 @@ function IndexPage({ mapboxAccessToken, data }) {
   );
 }
 
-export const getStaticProps = async () => {
+export const getStaticPaths = async () => {
+  const paths = healthStatusEnum.map((healthStatus) => ({
+    params: { healthStatus }
+  }));
+
+  return { paths, fallback: false };
+};
+
+export const getStaticProps = async ({ params }) => {
   try {
     const countSummary = JSON.parse(await getCountSummary());
-    const countCasesProv = JSON.parse(await getCountCasesProv("active"));
+    const countCasesProv = JSON.parse(
+      await getCountCasesProv(params.healthStatus)
+    );
     const basemap = JSON.parse(await getBasemap());
 
     return {
@@ -30,4 +45,4 @@ export const getStaticProps = async () => {
   }
 };
 
-export default IndexPage;
+export default HealthStatusPage;
